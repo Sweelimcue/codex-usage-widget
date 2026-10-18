@@ -163,7 +163,9 @@ class EnergySurface : FrameworkElement {
         if(x>0.01){
             const int samples=49;var pts=new Point[samples];for(int i=0;i<samples;i++){double y=h*i/(samples-1);pts[i]=new Point(Edge(y,t,x),y);}
             var region=new StreamGeometry();using(var g=region.Open()){g.BeginFigure(new Point(0,0),true,true);g.LineTo(pts[0],true,false);for(int i=1;i<samples;i++)g.LineTo(pts[i],true,false);g.LineTo(new Point(0,h),true,false);}region.Freeze();
-            var fill=new LinearGradientBrush();fill.StartPoint=new Point(0,0);fill.EndPoint=new Point(1,0);fill.GradientStops.Add(new GradientStop(start,0));fill.GradientStops.Add(new GradientStop(body,0.58));fill.GradientStops.Add(new GradientStop(tip,1));
+            var fill=new LinearGradientBrush();fill.StartPoint=new Point(0,0);fill.EndPoint=new Point(1,0);
+            // A continuous quadratic color curve avoids a visible change in slope at the middle stop.
+            for(int i=0;i<=16;i++){double u=i/16.0,v=1-u;var color=Color.FromRgb((byte)Math.Round(v*v*start.R+2*v*u*body.R+u*u*tip.R),(byte)Math.Round(v*v*start.G+2*v*u*body.G+u*u*tip.G),(byte)Math.Round(v*v*start.B+2*v*u*body.B+u*u*tip.B));fill.GradientStops.Add(new GradientStop(color,u));}
             dc.DrawGeometry(fill,null,region);
             dc.PushClip(region);
             dc.PushClip(new RectangleGeometry(new Rect(x*0.55,0,x*0.45+8,h)));
@@ -297,8 +299,8 @@ class FloatWindow : Window {
             title.Children.Add(new TextBlock{Text="CODEX",FontFamily=new FontFamily("Segoe UI"),FontWeight=FontWeights.ExtraBold,FontSize=17,Foreground=Brush("#F0F4FA"),Effect=shadow});
             title.Children.Add(new TextBlock{Text=row.Label+" · 剩余额度",FontSize=11,FontWeight=FontWeights.Medium,Foreground=Brush("#C6CFDA"),Margin=new Thickness(0,3,0,0),Effect=shadow});group.Children.Add(title);
             var number=new StackPanel{Orientation=Orientation.Horizontal,HorizontalAlignment=HorizontalAlignment.Right,VerticalAlignment=VerticalAlignment.Center,Margin=new Thickness(0,0,15,0),Effect=shadow};
-            number.Children.Add(new TextBlock{Text=row.Remaining.ToString("0.#"),FontFamily=new FontFamily("Segoe UI"),FontSize=27,FontWeight=FontWeights.Normal,Foreground=Brush("#F1F4F9")});
-            number.Children.Add(new TextBlock{Text="%"+(stale?"*":""),FontFamily=new FontFamily("Segoe UI"),FontSize=13,Foreground=Brush("#E1E7EF"),VerticalAlignment=VerticalAlignment.Center,Margin=new Thickness(1,6,0,0)});group.Children.Add(number);quotaPanel.Children.Add(group);
+            number.Children.Add(new TextBlock{Text=row.Remaining.ToString("0.#"),FontFamily=new FontFamily("Segoe UI"),FontSize=34,FontWeight=FontWeights.Bold,Foreground=Brush("#F1F4F9")});
+            number.Children.Add(new TextBlock{Text="%"+(stale?"*":""),FontFamily=new FontFamily("Segoe UI"),FontSize=15,FontWeight=FontWeights.SemiBold,Foreground=Brush("#E1E7EF"),VerticalAlignment=VerticalAlignment.Center,Margin=new Thickness(1,8,0,0)});group.Children.Add(number);quotaPanel.Children.Add(group);
         }
         frame.ToolTip=string.Join("\n",rows.Select(r=>r.Label+"剩余 "+r.Remaining.ToString("0.#")+"%"+(r.Reset==DateTime.MinValue?"":" · "+r.Reset.ToString("M/d HH:mm")+" 重置")))+"\n"+(stale?"* 缓存额度 · ":"已同步 ")+updated.ToString("HH:mm:ss")+"\n拖动移动 · 右键操作 · 完成整框红光3秒";
     }

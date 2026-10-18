@@ -1,5 +1,10 @@
 # Changelog
 
+## v1.0.4 — 2026-10-18
+
+- Enlarge the capsule percentage from 27 to 34 and use bold numerals.
+- Smooth the dark-to-light color progression with a continuous color curve.
+
 ## v1.0.3 — 2026-10-18
 
 - Make every capsule quota color progress from a dark left edge to a lighter right frontier.
