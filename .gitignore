@@ -1,0 +1,14 @@
+/bin/
+/dist/
+/work/
+.vs/
+*.user
+*.suo
+*.pdb
+*.tmp
+*cache*.json
+auth.json
+settings.json
+skin.json
+*.sqlite*
+*.jsonl

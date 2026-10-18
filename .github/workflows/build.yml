@@ -1,0 +1,21 @@
+name: Windows build
+on:
+  push:
+  pull_request:
+permissions:
+  contents: read
+jobs:
+  build:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v7.0.1
+      - name: Build
+        shell: pwsh
+        run: ./scripts/build.ps1
+      - name: Offline self-tests
+        shell: pwsh
+        run: ./scripts/test.ps1
+      - uses: actions/upload-artifact@v7.0.2
+        with:
+          name: CodexUsageWidget-windows-x64
+          path: bin/CodexUsageWidget.exe
