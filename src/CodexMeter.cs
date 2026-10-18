@@ -138,6 +138,9 @@ sealed class TaskMonitor {
 
 class EnergySurface : FrameworkElement {
     public double Remaining=0,DisplayedRemaining=double.NaN;public Color Tint;public double Intensity=0.8;
+    static readonly Brush particleGlow=Frozen(new RadialGradientBrush(Color.FromArgb(70,153,225,255),Colors.Transparent));
+    static readonly Brush particleCore=Frozen(new SolidColorBrush(Color.FromRgb(216,247,255)));
+    static Brush Frozen(Brush brush){brush.Freeze();return brush;}
     readonly Stopwatch elapsed=new Stopwatch();readonly DispatcherTimer animator;double lastTime;
     public EnergySurface(){
         animator=new DispatcherTimer(DispatcherPriority.Render){Interval=TimeSpan.FromMilliseconds(33)};
@@ -164,7 +167,15 @@ class EnergySurface : FrameworkElement {
             dc.DrawGeometry(fill,null,region);
             dc.PushClip(region);
             for(int i=0;i<5;i++){double cy=h*(0.1+0.2*i)+Math.Sin(t*0.8+i)*6;var glow=new RadialGradientBrush();glow.GradientStops.Add(new GradientStop(Alpha(tip,35),0));glow.GradientStops.Add(new GradientStop(Alpha(tip,0),1));dc.DrawEllipse(glow,null,new Point(x-13+Math.Sin(t+i)*4,cy),24,15);}
-            for(int i=0;i<10;i++){double seed=i*0.61803398875,life=(t*0.30+seed)%1;double py=((i*0.173+t*(i%2==0?0.025:-0.02))%1+1)%1*h;double px=x-5-life*(10+(i%4)*7);double a=Math.Sin(life*Math.PI);dc.DrawEllipse(new SolidColorBrush(Alpha(Color.FromRgb(207,244,255),(byte)(a*150))),null,new Point(px,py),i%3==0?0.8:0.45,i%3==0?0.8:0.45);}
+            // Stable, gently drifting stars span the whole fill; its clip keeps the spent area clear.
+            const int particleColumns=8,particleRows=4;
+            for(int row=0;row<particleRows;row++)for(int col=0;col<particleColumns;col++){
+                int i=row*particleColumns+col;double seed=i*0.61803398875;
+                double u=(col+0.20+((i*0.41421356237)%1)*0.60+Math.Sin(t*0.35+i*1.7)*0.10)/particleColumns;
+                double v=(row+0.22+((i*0.73205080757)%1)*0.56+Math.Cos(t*0.27+i*2.1)*0.10)/particleRows;
+                Point position=new Point(u*w,v*h);double life=(t*0.18+seed)%1,twinkle=Math.Sin(life*Math.PI),radius=0.55+(i%5)*0.12;
+                dc.PushOpacity(0.30+0.45*twinkle*twinkle);dc.DrawEllipse(particleGlow,null,position,radius*3.2,radius*3.2);dc.DrawEllipse(particleCore,null,position,radius,radius);dc.Pop();
+            }
             dc.Pop();
             var edge=new StreamGeometry();using(var g=edge.Open()){g.BeginFigure(pts[0],false,false);for(int i=1;i<samples;i++)g.LineTo(pts[i],true,false);}edge.Freeze();
             double pulse=(0.93+0.07*Math.Sin(t*2.1))*Intensity;

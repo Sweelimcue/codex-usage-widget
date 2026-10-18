@@ -1,5 +1,10 @@
 # Changelog
 
+## v1.0.1 — 2026-10-18
+
+- Distribute the capsule's glowing particles across the entire remaining-quota fill.
+- Keep particles clipped to the animated fill, with gentle drift and twinkle.
+
 ## v1.0.0 — 2026-10-18
 
 - Initial public release under the MIT license.
