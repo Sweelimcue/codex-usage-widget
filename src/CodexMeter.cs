@@ -155,7 +155,7 @@ class EnergySurface : FrameworkElement {
         double w=ActualWidth,h=ActualHeight;if(w<=0||h<=0)return;
         double t=elapsed.Elapsed.TotalSeconds,p=double.IsNaN(DisplayedRemaining)?Remaining:DisplayedRemaining,x=w*Math.Max(0,Math.Min(100,p))/100;
         Color start,body,tip;
-        if(Remaining>80){start=Color.FromRgb(7,39,34);body=Color.FromRgb(0,148,106);tip=Color.FromRgb(108,247,190);}
+        if(Remaining>80){start=Color.FromRgb(8,38,15);body=Color.FromRgb(15,157,42);tip=Color.FromRgb(112,247,125);}
         else if(Remaining>60){start=Color.FromRgb(9,23,58);body=Color.FromRgb(0,77,210);tip=Color.FromRgb(49,177,255);}
         else if(Remaining>40){start=Color.FromRgb(27,15,52);body=Color.FromRgb(87,39,174);tip=Color.FromRgb(182,136,255);}
         else if(Remaining>20){start=Color.FromRgb(49,37,7);body=Color.FromRgb(175,144,13);tip=Color.FromRgb(255,237,115);}

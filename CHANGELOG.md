@@ -1,5 +1,9 @@
 # Changelog
 
+## v1.0.6 — 2026-10-18
+
+- Make the highest capsule quota stage greener while retaining the blue 80 percent stage.
+
 ## v1.0.5 — 2026-10-18
 
 - Use six capsule color stages at 80, 60, 40, 20, and 10 percent remaining.
