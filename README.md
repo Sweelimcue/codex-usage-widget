@@ -11,6 +11,7 @@ A small Windows desktop widget for Codex quota, reset countdowns, and local task
 - 右键切换三种皮肤：动态能量胶囊、白色立体圆环、深紫色极光圆环。
 - 白色圆环与极光圆环均为 130 × 130；支持拖动、置顶、托盘收起与记住位置。
 - 每分钟读取账号真实剩余额度，按阶段变色；过期或缓存数据会标记星号。
+- 三种皮肤统一六档配色：>80% 翠绿、>60% 蓝、>40% 紫、>20% 金黄、>10% 橙黄、≤10% 红橙。
 - 圆环中心显示百分比及重置倒计时，精确到天、小时；不足一小时会明确提示。
 - 本机任务完成时，整个框体（含填充区、暗色区和边框）泛红发光，3 秒后淡出。切换皮肤不会重新开始提醒计时。
 - 使用已有 Codex 登录，无需填写 API Key。演示图使用虚构数值。
@@ -46,11 +47,13 @@ Start-Process -FilePath $exe -ArgumentList "--demo-preview `"$preview`"" -Wait
 
 ### 额度阶段与任务完成效果
 
+![Six quota colors across all three skins](docs/all-skin-stages.png)
+
 ![Capsule quota stages](docs/quota-stages.png)
 
 ![Three-second full-frame completion glow](docs/completion-glow.gif)
 
-可用 `--stages-preview <目录>` 导出九个示例额度状态，用 `--alert-preview <目录>` 导出完成提醒的逐帧图像。这些导出使用示例额度，无需登录或联网。
+可用 `--stages-preview <目录>` 导出十二个胶囊示例额度状态，`--all-skins-stages-preview <目录>` 导出三种皮肤的六档对比图，用 `--alert-preview <目录>` 导出完成提醒的逐帧图像。这些导出使用示例额度，无需登录或联网。
 
 ## 数据与边界
 

@@ -19,14 +19,27 @@ using System.Windows.Markup;
 using Forms = System.Windows.Forms;
 
 namespace CodexMeter {
+sealed class QuotaColors {
+    public readonly Color Start,Body,Tip;public readonly string Name;
+    QuotaColors(string name,string start,string body,string tip){Name=name;Start=(Color)ColorConverter.ConvertFromString(start);Body=(Color)ColorConverter.ConvertFromString(body);Tip=(Color)ColorConverter.ConvertFromString(tip);}
+    static readonly QuotaColors[] stages={
+        new QuotaColors("翠绿","#08260F","#0F9D2A","#70F77D"),
+        new QuotaColors("蓝色","#09173A","#004DD2","#31B1FF"),
+        new QuotaColors("紫色","#1B0F34","#5727AE","#B688FF"),
+        new QuotaColors("金黄","#312507","#AF900D","#FFED73"),
+        new QuotaColors("橙黄","#412007","#DB7900","#FFDA53"),
+        new QuotaColors("红橙","#3B0E1C","#C51F3E","#FF8153")
+    };
+    public static QuotaColors For(double remaining){return stages[remaining>80?0:remaining>60?1:remaining>40?2:remaining>20?3:remaining>10?4:5];}
+}
 static class Data {
     public static Dictionary<string,object> Obj(object x) { return x as Dictionary<string,object> ?? new Dictionary<string,object>(); }
     public static object Get(object x,string k) { object v; return Obj(x).TryGetValue(k,out v)?v:null; }
     public static string Str(object x) { return x == null ? "" : Convert.ToString(x,System.Globalization.CultureInfo.InvariantCulture); }
     public static double Num(object x,double fallback) { double v; return double.TryParse(Str(x),System.Globalization.NumberStyles.Any,System.Globalization.CultureInfo.InvariantCulture,out v)&&!double.IsInfinity(v)&&!double.IsNaN(v)?v:fallback; }
     public static JavaScriptSerializer Json() { return new JavaScriptSerializer { MaxJsonLength=32000000, RecursionLimit=120 }; }
-    public static string Stage(double n) { return n>50?"#56DCA8":n>30?"#65B8FF":n>10?"#F5C35E":"#FF7485"; }
-    public static string StageName(double n) { return n>50?"充足":n>30?"正常":n>10?"留意额度":"即将用尽"; }
+    public static string Stage(double n) { return QuotaColors.For(n).Body.ToString(); }
+    public static string StageName(double n) { return QuotaColors.For(n).Name; }
     public static DateTime Epoch(object x) { double s=Num(x,0); try{return new DateTime(1970,1,1,0,0,0,DateTimeKind.Utc).AddSeconds(s).ToLocalTime();}catch{return DateTime.MinValue;} }
     public static void Atomic(string path,string value) { string tmp=path+".tmp"; File.WriteAllText(tmp,value,new UTF8Encoding(false)); if(File.Exists(path)) File.Replace(tmp,path,null); else File.Move(tmp,path); }
     public static List<Quota> Quotas(object result) {
@@ -154,13 +167,7 @@ class EnergySurface : FrameworkElement {
     protected override void OnRender(DrawingContext dc){
         double w=ActualWidth,h=ActualHeight;if(w<=0||h<=0)return;
         double t=elapsed.Elapsed.TotalSeconds,p=double.IsNaN(DisplayedRemaining)?Remaining:DisplayedRemaining,x=w*Math.Max(0,Math.Min(100,p))/100;
-        Color start,body,tip;
-        if(Remaining>80){start=Color.FromRgb(8,38,15);body=Color.FromRgb(15,157,42);tip=Color.FromRgb(112,247,125);}
-        else if(Remaining>60){start=Color.FromRgb(9,23,58);body=Color.FromRgb(0,77,210);tip=Color.FromRgb(49,177,255);}
-        else if(Remaining>40){start=Color.FromRgb(27,15,52);body=Color.FromRgb(87,39,174);tip=Color.FromRgb(182,136,255);}
-        else if(Remaining>20){start=Color.FromRgb(49,37,7);body=Color.FromRgb(175,144,13);tip=Color.FromRgb(255,237,115);}
-        else if(Remaining>10){start=Color.FromRgb(65,32,7);body=Color.FromRgb(219,121,0);tip=Color.FromRgb(255,218,83);}
-        else{start=Color.FromRgb(59,14,28);body=Color.FromRgb(197,31,62);tip=Color.FromRgb(255,129,83);}
+        var palette=QuotaColors.For(Remaining);Color start=palette.Start,body=palette.Body,tip=palette.Tip;
         dc.PushClip(new RectangleGeometry(new Rect(0,0,w,h),16,16));dc.DrawRectangle(new SolidColorBrush(Color.FromRgb(20,23,27)),null,new Rect(0,0,w,h));
         if(x>0.01){
             const int samples=49;var pts=new Point[samples];for(int i=0;i<samples;i++){double y=h*i/(samples-1);pts[i]=new Point(Edge(y,t,x),y);}
@@ -245,8 +252,8 @@ class FloatWindow : Window {
     readonly bool previewMode;
     public FloatWindow(bool preview=false){
         previewMode=preview;
-        Title="Codex 用量胶囊";Width=298;Height=114;WindowStyle=WindowStyle.None;ResizeMode=ResizeMode.NoResize;AllowsTransparency=true;Background=Brushes.Transparent;Topmost=true;ShowInTaskbar=false;FontFamily=new FontFamily("Microsoft YaHei UI");
-        frame=(Border)XamlReader.Parse(@"<Border xmlns='http://schemas.microsoft.com/winfx/2006/xaml/presentation' xmlns:x='http://schemas.microsoft.com/winfx/2006/xaml' Background='Transparent' Opacity='0.92' BorderThickness='5' CornerRadius='21' Margin='16,12,16,20'>
+        Title="Codex 用量胶囊";Width=298;Height=85.5;WindowStyle=WindowStyle.None;ResizeMode=ResizeMode.NoResize;AllowsTransparency=true;Background=Brushes.Transparent;Topmost=true;ShowInTaskbar=false;FontFamily=new FontFamily("Microsoft YaHei UI");
+        frame=(Border)XamlReader.Parse(@"<Border xmlns='http://schemas.microsoft.com/winfx/2006/xaml/presentation' xmlns:x='http://schemas.microsoft.com/winfx/2006/xaml' Background='Transparent' Opacity='0.92' BorderThickness='5' CornerRadius='21' Margin='16,9,16,15'>
           <Border.Effect><DropShadowEffect Color='#07111D' BlurRadius='16' ShadowDepth='5' Direction='270' Opacity='0.62'/></Border.Effect>
           <Grid Background='Transparent'>
             <StackPanel x:Name='Quotas' Orientation='Horizontal'/>
@@ -295,7 +302,7 @@ class FloatWindow : Window {
         if(rows.Count==0){Width=298;quotaPanel.Children.Add(new TextBlock{Text="CODEX      —",FontSize=17,Foreground=Brush("#CED5E0"),Margin=new Thickness(18,0,0,0),VerticalAlignment=VerticalAlignment.Center});frame.ToolTip=stale?"额度暂不可用，将自动重试":"正在读取真实额度…";return;}
         Width=42+rows.Count*256;
         foreach(var row in rows){
-            var group=new Grid{Width=256,Tag=row.Label};string hue=row.Remaining>50?"#B8F34C":row.Remaining>30?"#64CFFF":row.Remaining>10?"#FFD35A":"#FF795C";var surface=new EnergySurface{Remaining=row.Remaining,DisplayedRemaining=previous.ContainsKey(row.Label)?previous[row.Label]:row.Remaining,Tint=Brush(hue).Color,Intensity=unread>0?1:0.8};group.Children.Add(surface);
+            var group=new Grid{Width=256,Tag=row.Label};var surface=new EnergySurface{Remaining=row.Remaining,DisplayedRemaining=previous.ContainsKey(row.Label)?previous[row.Label]:row.Remaining,Tint=QuotaColors.For(row.Remaining).Body,Intensity=unread>0?1:0.8};group.Children.Add(surface);
             var title=new StackPanel{Margin=new Thickness(16,0,0,0),HorizontalAlignment=HorizontalAlignment.Left,VerticalAlignment=VerticalAlignment.Center};
             var shadow=new System.Windows.Media.Effects.DropShadowEffect{BlurRadius=4,ShadowDepth=0,Color=Colors.Black,Opacity=0.9};
             title.Children.Add(new TextBlock{Text="CODEX",FontFamily=new FontFamily("Segoe UI"),FontWeight=FontWeights.ExtraBold,FontSize=17,Foreground=Brush("#F0F4FA"),Effect=shadow});
@@ -321,6 +328,7 @@ static class Program {
             if(args.Contains("--compare-preview")||args.Contains("--ring-test"))return RingProgram.Main(args);
             if(args.Contains("--skin-test"))return SkinController.Test(args.Last());
             if(args.Contains("--stages-preview"))return RenderPreviews.Stages(args.Last());
+            if(args.Contains("--all-skins-stages-preview"))return RenderPreviews.AllSkinsStages(args.Last());
             if(args.Contains("--alert-preview"))return RenderPreviews.Alert(args.Last());
             if(args.Contains("--skin-preview")||args.Contains("--demo-preview"))return SkinController.Preview(args.Last(),args.Contains("--demo-preview"));
             if(args.Contains("--self-test")){SelfTest(args.Last());return 0;}
@@ -338,7 +346,7 @@ static class Program {
     }
     static void Check(bool test,string name,List<string> passed){if(!test)throw new Exception("FAILED: "+name);passed.Add(name);}
     static void SelfTest(string output){var passed=new List<string>();
-        Check(Data.Stage(51)=="#56DCA8"&&Data.Stage(50)=="#65B8FF"&&Data.Stage(31)=="#65B8FF"&&Data.Stage(30)=="#F5C35E"&&Data.Stage(11)=="#F5C35E"&&Data.Stage(10)=="#FF7485"&&Data.Stage(0)=="#FF7485","threshold boundaries",passed);
+        Check(Data.Stage(100)=="#FF0F9D2A"&&Data.Stage(80.01)=="#FF0F9D2A"&&Data.Stage(80)=="#FF004DD2"&&Data.Stage(60.01)=="#FF004DD2"&&Data.Stage(60)=="#FF5727AE"&&Data.Stage(40.01)=="#FF5727AE"&&Data.Stage(40)=="#FFAF900D"&&Data.Stage(20.01)=="#FFAF900D"&&Data.Stage(20)=="#FFDB7900"&&Data.Stage(10.01)=="#FFDB7900"&&Data.Stage(10)=="#FFC51F3E"&&Data.Stage(0)=="#FFC51F3E","shared six-stage threshold boundaries",passed);
         var q=Data.Quotas(Data.Json().DeserializeObject("{\"rateLimitsByLimitId\":{\"codex\":{\"primary\":{\"usedPercent\":4,\"windowDurationMins\":10080},\"secondary\":null}}}"));Check(q.Count==1&&q[0].Remaining==96&&q[0].Label=="周额度","weekly primary without secondary",passed);
         q=Data.Quotas(Data.Json().DeserializeObject("{\"rateLimits\":{\"primary\":{\"usedPercent\":120,\"windowDurationMins\":300},\"secondary\":{\"usedPercent\":10,\"windowDurationMins\":10080},\"individualLimit\":{\"remainingPercent\":68}}}"));Check(q.Count==3&&q[0].Remaining==0&&q[0].Label=="5 小时额度"&&q[2].Remaining==68,"legacy and monthly quotas",passed);
         Check(Data.Quotas(new {}).Count==0,"missing quota stays unknown",passed);

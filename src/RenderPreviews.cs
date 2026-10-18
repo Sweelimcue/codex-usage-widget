@@ -16,6 +16,18 @@ static class RenderPreviews {
     static FloatWindow Make(int remaining){var w=new FloatWindow(true){ShowActivated=false,Left=SystemParameters.VirtualScreenLeft-2000,Top=SystemParameters.VirtualScreenTop-2000};w.SetPreviewQuota(Quota(remaining));w.Show();w.UpdateLayout();return w;}
     static void Save(Visual visual,double width,double height,string file){var bmp=new RenderTargetBitmap((int)Math.Ceiling(width*2),(int)Math.Ceiling(height*2),192,192,PixelFormats.Pbgra32);bmp.Render(visual);var encoder=new PngBitmapEncoder();encoder.Frames.Add(BitmapFrame.Create(bmp));using(var f=File.Create(file))encoder.Save(f);}
     static void Text(DrawingContext dc,string value,double x,double y,double size,Brush color,bool bold=false){dc.DrawText(new FormattedText(value,CultureInfo.InvariantCulture,FlowDirection.LeftToRight,new Typeface(new FontFamily("Microsoft YaHei UI"),FontStyles.Normal,bold?FontWeights.SemiBold:FontWeights.Normal,FontStretches.Normal),size,color,1),new Point(x,y));}
+    public static int AllSkinsStages(string path){
+        string folder=Path.GetFullPath(path);Directory.CreateDirectory(folder);var app=new Application{ShutdownMode=ShutdownMode.OnExplicitShutdown};var windows=new List<Window>();int[] levels={100,80,60,40,20,10};
+        try{var scene=new DrawingVisual();const double width=700,height=1090;using(var dc=scene.RenderOpen()){
+            dc.DrawRectangle(new SolidColorBrush(Color.FromRgb(237,240,245)),null,new Rect(0,0,width,height));Text(dc,"三种皮肤 · 六档额度配色",24,16,19,Brushes.DarkSlateGray,true);
+            Text(dc,"能量胶囊",28,53,12,Brushes.DimGray);Text(dc,"白色立体圆环",350,53,12,Brushes.DimGray);Text(dc,"极光圆环",530,53,12,Brushes.DimGray);
+            for(int i=0;i<levels.Length;i++){int value=levels[i];double y=80+i*166;Text(dc,value+"% · "+QuotaColors.For(value).Name,28,y,12,Brushes.DarkSlateGray,true);
+                var capsule=Make(value);windows.Add(capsule);capsule.CaptureScene(Path.Combine(folder,"capsule-"+value+".png"));dc.DrawRectangle(new VisualBrush(capsule),null,new Rect(10,y+20+(130-capsule.ActualHeight)/2,capsule.ActualWidth,capsule.ActualHeight));
+                for(int style=0;style<2;style++){var ring=new RingWindow(true,style==1){ShowActivated=false,Left=SystemParameters.VirtualScreenLeft-2000,Top=SystemParameters.VirtualScreenTop-2000};windows.Add(ring);ring.ApplyData(Quota(value),false,DateTime.Now);ring.Show();ring.UpdateLayout();ring.Capture(Path.Combine(folder,(style==0?"white-":"aurora-")+value+".png"));dc.DrawRectangle(new VisualBrush(ring),null,new Rect(style==0?330:510,y+20,130,130));}
+            }
+        }Save(scene,width,height,Path.Combine(folder,"三皮肤六档配色.png"));
+        }finally{foreach(var w in windows)w.Close();app.Shutdown();}return 0;
+    }
     public static int Stages(string path){string folder=Path.GetFullPath(path);Directory.CreateDirectory(folder);var app=new Application{ShutdownMode=ShutdownMode.OnExplicitShutdown};int[] levels={100,90,80,75,60,50,40,30,20,10,5,0};var windows=new List<FloatWindow>();
         try{foreach(int level in levels){var w=Make(level);windows.Add(w);w.CaptureScene(Path.Combine(folder,"quota-"+level.ToString("000")+".png"));}
             double cellWidth=298,width=3*cellWidth+4*18,height=80+Math.Ceiling(levels.Length/3.0)*150;var scene=new DrawingVisual();using(var dc=scene.RenderOpen()){

@@ -1,5 +1,12 @@
 # Changelog
 
+## v1.0.7 — 2026-10-18
+
+- Share the same six quota palettes across capsule, white ring, and aurora ring.
+- Tint ring shading, highlights, glow, and endpoint markers to match each quota stage.
+- Export an offline all-skin color comparison without changing saved window positions.
+- Reduce capsule height by 25 percent while preserving width, bold text, and the uniform five-pixel rim.
+
 ## v1.0.6 — 2026-10-18
 
 - Make the highest capsule quota stage greener while retaining the blue 80 percent stage.

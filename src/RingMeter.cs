@@ -23,12 +23,12 @@ class RingSurface : FrameworkElement {
         if(p<=0)return;
         var arc=new StreamGeometry();using(var s=arc.Open()){s.BeginFigure(new Point(c,c-r),false,false);if(p>=0.9999){s.ArcTo(new Point(c,c+r),new Size(r,r),0,false,SweepDirection.Clockwise,true,false);s.ArcTo(new Point(c,c-r),new Size(r,r),0,false,SweepDirection.Clockwise,true,false);}else{double a=-Math.PI/2+p*2*Math.PI;s.ArcTo(new Point(c+r*Math.Cos(a),c+r*Math.Sin(a)),new Size(r,r),0,p>0.5,SweepDirection.Clockwise,true,false);}}arc.Freeze();
         var color=new LinearGradientBrush{StartPoint=new Point(0.8,0),EndPoint=new Point(0.15,1)};
-        string head=Remaining>50?"#9DFF7B":Remaining>30?"#81DAFF":Remaining>10?"#FFE286":"#FF9DAD";
-        color.GradientStops.Add(new GradientStop(B(head).Color,0));color.GradientStops.Add(new GradientStop(B(Remaining>30?"#8FE0C2":"#E9A0B7").Color,0.36));color.GradientStops.Add(new GradientStop(B("#9CB6E0").Color,0.65));color.GradientStops.Add(new GradientStop(B("#B478F3").Color,1));
-        dc.DrawGeometry(null,new Pen(new SolidColorBrush(Color.FromArgb(20,173,139,255)),23){StartLineCap=PenLineCap.Round,EndLineCap=PenLineCap.Round},arc);
+        var palette=QuotaColors.For(Remaining);
+        color.GradientStops.Add(new GradientStop(palette.Tip,0));color.GradientStops.Add(new GradientStop(palette.Body,0.45));color.GradientStops.Add(new GradientStop(palette.Tip,1));
+        dc.DrawGeometry(null,new Pen(new SolidColorBrush(Color.FromArgb(35,palette.Tip.R,palette.Tip.G,palette.Tip.B)),23){StartLineCap=PenLineCap.Round,EndLineCap=PenLineCap.Round},arc);
         dc.DrawGeometry(null,new Pen(color,18){StartLineCap=PenLineCap.Round,EndLineCap=PenLineCap.Round},arc);
         dc.DrawGeometry(null,new Pen(new SolidColorBrush(Color.FromArgb(20,255,255,255)),16){StartLineCap=PenLineCap.Round,EndLineCap=PenLineCap.Round},arc);
-        for(int i=0;i<(p>0.995?1:2);i++){double a=-Math.PI/2+(i==0?0:p*2*Math.PI);Point dot=new Point(c+r*Math.Cos(a),c+r*Math.Sin(a));dc.DrawEllipse(new SolidColorBrush(Color.FromArgb(40,8,9,28)),null,new Point(dot.X,dot.Y+1),7.2,7.2);dc.DrawEllipse(B("#F6FAF7"),new Pen(B("#D9E4E1"),0.7),dot,6,6);dc.DrawEllipse(B(i==0?"#A5E9B1":"#CAB0E8"),null,dot,2.9,2.9);dc.DrawEllipse(Brushes.White,null,new Point(dot.X-0.8,dot.Y-1.1),1,1);}
+        for(int i=0;i<(p>0.995?1:2);i++){double a=-Math.PI/2+(i==0?0:p*2*Math.PI);Point dot=new Point(c+r*Math.Cos(a),c+r*Math.Sin(a));dc.DrawEllipse(new SolidColorBrush(Color.FromArgb(40,8,9,28)),null,new Point(dot.X,dot.Y+1),7.2,7.2);dc.DrawEllipse(B("#F6FAF7"),new Pen(B("#D9E4E1"),0.7),dot,6,6);dc.DrawEllipse(new SolidColorBrush(i==0?palette.Tip:palette.Body),null,dot,2.9,2.9);dc.DrawEllipse(Brushes.White,null,new Point(dot.X-0.8,dot.Y-1.1),1,1);}
     }
     protected override void OnRender(DrawingContext dc){
         if(Dark){DrawDark(dc);return;}
@@ -42,14 +42,10 @@ class RingSurface : FrameworkElement {
             Geometry arc;
             if(p>=0.99999)arc=new CombinedGeometry(GeometryCombineMode.Exclude,new EllipseGeometry(new Point(c,c),r,r),new EllipseGeometry(new Point(c,c),inner,inner));
             else{double a=-Math.PI/2+p*Math.PI*2;Point outerEnd=new Point(c+r*Math.Cos(a),c+r*Math.Sin(a)),innerEnd=new Point(c+inner*Math.Cos(a),c+inner*Math.Sin(a));var g=new StreamGeometry();using(var s=g.Open()){s.BeginFigure(new Point(c,c-r),true,true);s.ArcTo(outerEnd,new Size(r,r),0,p>0.5,SweepDirection.Clockwise,true,false);s.LineTo(innerEnd,true,false);s.ArcTo(new Point(c,c-inner),new Size(inner,inner),0,p>0.5,SweepDirection.Counterclockwise,true,false);}g.Freeze();arc=g;}
-            Color light,dark;
-            if(Remaining>50){light=Color.FromRgb(112,255,103);dark=Color.FromRgb(18,187,64);}
-            else if(Remaining>30){light=Color.FromRgb(132,215,255);dark=Color.FromRgb(41,121,228);}
-            else if(Remaining>10){light=Color.FromRgb(255,230,109);dark=Color.FromRgb(229,159,25);}
-            else{light=Color.FromRgb(255,156,144);dark=Color.FromRgb(231,64,75);}
+            var palette=QuotaColors.For(Remaining);Color light=palette.Tip,dark=palette.Body;
             var fill=new LinearGradientBrush();fill.StartPoint=new Point(0,0);fill.EndPoint=new Point(0.8,1);fill.GradientStops.Add(new GradientStop(light,0));fill.GradientStops.Add(new GradientStop(dark,0.57));fill.GradientStops.Add(new GradientStop(light,1));
             dc.PushTransform(new TranslateTransform(0,1.6));dc.DrawGeometry(new SolidColorBrush(Color.FromArgb(25,dark.R,dark.G,dark.B)),new Pen(new SolidColorBrush(Color.FromArgb(15,dark.R,dark.G,dark.B)),4),arc);dc.Pop();
-            dc.DrawGeometry(fill,new Pen(new SolidColorBrush(Color.FromArgb(120,210,255,209)),1),arc);
+            dc.DrawGeometry(fill,new Pen(new SolidColorBrush(Color.FromArgb(120,light.R,light.G,light.B)),1),arc);
             dc.PushClip(arc);var glint=new RadialGradientBrush();glint.Center=new Point(0.5,0.18);glint.GradientOrigin=new Point(0.5,0.18);glint.RadiusX=0.60;glint.RadiusY=0.80;glint.GradientStops.Add(new GradientStop(Color.FromArgb(80,255,255,255),0));glint.GradientStops.Add(new GradientStop(Colors.Transparent,1));dc.DrawRectangle(glint,null,new Rect(c-r,c-r,2*r,2*r));dc.Pop();
         }
         for(int i=12;i>=1;i--)dc.DrawEllipse(new SolidColorBrush(Color.FromArgb((byte)(i<5?12:4),33,43,35)),null,new Point(c,c+4),inner+i*0.9,inner+i*0.9);
@@ -66,14 +62,14 @@ class AuroraShine : FrameworkElement {
 }
 
 class RingWindow : Window {
-    readonly string store;readonly bool dark;
+    readonly string store;readonly bool dark,previewMode;
     readonly string shared=Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),"CodexUsageFloat","quota-cache.json");
     Border card;RingSurface ring;TextBlock percent,countdown;FrameGlow sweep;Forms.NotifyIcon tray;
     DispatcherTimer clock,scanTimer;TaskMonitor monitor;Rpc rpc;object rpcLock=new object();AutoResetEvent refresh=new AutoResetEvent(false);CancellationTokenSource cancel=new CancellationTokenSource();bool closing;int scanBusy;DateTime reset=DateTime.MinValue;DateTime updated;object current;
     public bool IsSweeping {get{return sweep.Active;}}public double SweepPhase {get{return sweep.Phase;}}public bool IsDark {get{return dark;}}
     static SolidColorBrush B(string color){return (SolidColorBrush)new BrushConverter().ConvertFromString(color);}
     public RingWindow(bool preview=false,bool darkStyle=false){
-        dark=darkStyle;store=Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),dark?"CodexUsageAurora":"CodexUsageRing");
+        previewMode=preview;dark=darkStyle;store=Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),dark?"CodexUsageAurora":"CodexUsageRing");
         Title=dark?"Codex 极光圆环":"Codex 用量圆环";Width=130;Height=130;WindowStyle=WindowStyle.None;ResizeMode=ResizeMode.NoResize;AllowsTransparency=true;Background=Brushes.Transparent;Topmost=true;ShowInTaskbar=false;FontFamily=new FontFamily("Microsoft YaHei UI");
         var root=new Grid{Width=260,Height=260,LayoutTransform=new ScaleTransform(0.5,0.5)};card=new Border{Background=Brushes.White,BorderBrush=B("#E4E8E6"),BorderThickness=new Thickness(1),CornerRadius=new CornerRadius(dark?48:20),Margin=new Thickness(16),Opacity=dark?0.98:0.97,Effect=new System.Windows.Media.Effects.DropShadowEffect{Color=dark?Color.FromRgb(10,11,36):Color.FromRgb(21,31,27),BlurRadius=dark?17:12,ShadowDepth=dark?5:4,Opacity=dark?0.36:0.20}};
         if(dark){var body=new LinearGradientBrush();body.StartPoint=new Point(0.15,0);body.EndPoint=new Point(0.85,1);body.GradientStops.Add(new GradientStop(B("#21195A").Color,0));body.GradientStops.Add(new GradientStop(B("#10122C").Color,0.46));body.GradientStops.Add(new GradientStop(B("#090F1C").Color,1));card.Background=body;card.BorderBrush=new LinearGradientBrush(B("#A09ACA").Color,B("#202C3D").Color,90);card.BorderThickness=new Thickness(1.2);}
@@ -98,7 +94,7 @@ class RingWindow : Window {
     volatile bool forceRead;
     void Add(ContextMenu m,string name,Action action){var item=new MenuItem{Header=name};item.Click+=(s,e)=>action();m.Items.Add(item);}
     void Restore(){Left=SystemParameters.WorkArea.Right-Width-350;Top=SystemParameters.WorkArea.Top+80;try{string file=Path.Combine(store,"settings.json");if(File.Exists(file)){var d=Data.Json().DeserializeObject(File.ReadAllText(file));Left=Data.Num(Data.Get(d,"left"),Left);Top=Data.Num(Data.Get(d,"top"),Top);}else{string main=Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),"CodexUsageFloat","settings.json");if(File.Exists(main)){var d=Data.Json().DeserializeObject(File.ReadAllText(main));Left=Data.Num(Data.Get(d,"left"),Left)-Width-12;Top=Data.Num(Data.Get(d,"top"),Top);}}}catch{}Left=Math.Max(SystemParameters.VirtualScreenLeft,Math.Min(Left,SystemParameters.VirtualScreenLeft+SystemParameters.VirtualScreenWidth-Width));Top=Math.Max(SystemParameters.VirtualScreenTop,Math.Min(Top,SystemParameters.VirtualScreenTop+SystemParameters.VirtualScreenHeight-Height));}
-    void Save(){try{Data.Atomic(Path.Combine(store,"settings.json"),Data.Json().Serialize(new{left=Left,top=Top}));}catch{}}
+    void Save(){if(previewMode)return;try{Data.Atomic(Path.Combine(store,"settings.json"),Data.Json().Serialize(new{left=Left,top=Top}));}catch{}}
     public static string Countdown(DateTime target,DateTime now){if(target==DateTime.MinValue)return "重置时间暂未提供";double seconds=Math.Ceiling((target-now).TotalSeconds);if(seconds<=0)return "等待额度重置…";if(seconds<3600)return "不足1小时";var t=TimeSpan.FromSeconds(seconds);return (t.Days>0?t.Days+"天 ":"")+t.Hours+"小时";}
     void UpdateCountdown(){countdown.Text=Countdown(reset,DateTime.Now);countdown.ToolTip=reset==DateTime.MinValue?"额度接口未返回重置时间":reset.ToString("yyyy-MM-dd HH:mm:ss")+" 重置（本地时间）";}
     public void ApplyData(object data,bool stale,DateTime time){current=data;updated=time;var rows=Data.Quotas(data);if(rows.Count==0){percent.Text="—";reset=DateTime.MinValue;UpdateCountdown();return;}var q=rows.First();ring.Remaining=q.Remaining;ring.InvalidateVisual();percent.Text=q.Remaining.ToString("0.#")+(stale?"*":"");reset=q.Reset;card.ToolTip=(stale?"缓存额度 · ":"已同步 ")+time.ToString("HH:mm:ss")+"\n"+string.Join("\n",rows.Select(r=>r.Label+"剩余 "+r.Remaining.ToString("0.#")+"%"));UpdateCountdown();}
