@@ -1,5 +1,10 @@
 # Changelog
 
+## v1.0.5 — 2026-10-18
+
+- Use six capsule color stages at 80, 60, 40, 20, and 10 percent remaining.
+- Add teal and gold stages, preserving the existing blue, purple, low-quota orange, and critical red palettes.
+
 ## v1.0.4 — 2026-10-18
 
 - Enlarge the capsule percentage from 27 to 34 and use bold numerals.
