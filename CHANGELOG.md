@@ -1,5 +1,11 @@
 # Changelog
 
+## v1.0.8 — 2026-10-18
+
+- Match the white skin's physical corner radius to the capsule and its completion glow.
+- Give the colored white-ring progress the same sculpted radial material as its track, with beveled highlights.
+- Replace the capsule quota subtitle with the next reset date and time.
+
 ## v1.0.7 — 2026-10-18
 
 - Share the same six quota palettes across capsule, white ring, and aurora ring.

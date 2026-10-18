@@ -16,6 +16,12 @@ namespace CodexMeter {
 class RingSurface : FrameworkElement {
     public double Remaining;public bool Dark;
     static SolidColorBrush B(string c){return (SolidColorBrush)new BrushConverter().ConvertFromString(c);}
+    static Color Mix(Color a,Color b,double t){return Color.FromRgb((byte)Math.Round(a.R+(b.R-a.R)*t),(byte)Math.Round(a.G+(b.G-a.G)*t),(byte)Math.Round(a.B+(b.B-a.B)*t));}
+    static RadialGradientBrush WhiteRingMaterial(Color high,Color low){
+        // Absolute coordinates keep the same sculpted material on the track and every arc length.
+        var material=new RadialGradientBrush{MappingMode=BrushMappingMode.Absolute,Center=new Point(113.44,115.36),GradientOrigin=new Point(119.2,124.96),RadiusX=103.68,RadiusY=103.68};
+        material.GradientStops.Add(new GradientStop(high,0.50));material.GradientStops.Add(new GradientStop(Mix(high,low,0.52),0.77));material.GradientStops.Add(new GradientStop(low,0.92));material.GradientStops.Add(new GradientStop(Mix(high,low,0.15),1));return material;
+    }
     void DrawDark(DrawingContext dc){
         const double c=100,r=79;double p=Math.Max(0,Math.Min(100,Remaining))/100;
         var core=new RadialGradientBrush(Color.FromRgb(23,20,49),Color.FromRgb(13,17,36));dc.DrawEllipse(core,null,new Point(c,c),66,66);
@@ -33,8 +39,7 @@ class RingSurface : FrameworkElement {
     protected override void OnRender(DrawingContext dc){
         if(Dark){DrawDark(dc);return;}
         const double c=100,r=96,inner=62;
-        var track=new RadialGradientBrush();track.Center=new Point(0.57,0.58);track.GradientOrigin=new Point(0.6,0.63);track.RadiusX=0.54;track.RadiusY=0.54;
-        track.GradientStops.Add(new GradientStop(Color.FromRgb(255,255,255),0.50));track.GradientStops.Add(new GradientStop(Color.FromRgb(235,238,235),0.77));track.GradientStops.Add(new GradientStop(Color.FromRgb(216,222,217),0.92));track.GradientStops.Add(new GradientStop(Color.FromRgb(246,248,246),1));
+        var track=WhiteRingMaterial(Colors.White,Color.FromRgb(216,222,217));
         dc.DrawEllipse(track,null,new Point(c,c),r,r);
         double p=Math.Max(0,Math.Min(100,Remaining))/100;
         for(int i=0;i<12;i++){double angle=-Math.PI/2+i*Math.PI/6;if(i/12.0>p+0.03){var pos=new Point(c+79*Math.Cos(angle),c+79*Math.Sin(angle));dc.PushTransform(new RotateTransform(angle*180/Math.PI,pos.X,pos.Y));dc.DrawRoundedRectangle(new SolidColorBrush(Color.FromRgb(179,188,179)),null,new Rect(pos.X-1.3,pos.Y-1.3,2.6,2.6),0.6,0.6);dc.Pop();}}
@@ -43,10 +48,11 @@ class RingSurface : FrameworkElement {
             if(p>=0.99999)arc=new CombinedGeometry(GeometryCombineMode.Exclude,new EllipseGeometry(new Point(c,c),r,r),new EllipseGeometry(new Point(c,c),inner,inner));
             else{double a=-Math.PI/2+p*Math.PI*2;Point outerEnd=new Point(c+r*Math.Cos(a),c+r*Math.Sin(a)),innerEnd=new Point(c+inner*Math.Cos(a),c+inner*Math.Sin(a));var g=new StreamGeometry();using(var s=g.Open()){s.BeginFigure(new Point(c,c-r),true,true);s.ArcTo(outerEnd,new Size(r,r),0,p>0.5,SweepDirection.Clockwise,true,false);s.LineTo(innerEnd,true,false);s.ArcTo(new Point(c,c-inner),new Size(inner,inner),0,p>0.5,SweepDirection.Counterclockwise,true,false);}g.Freeze();arc=g;}
             var palette=QuotaColors.For(Remaining);Color light=palette.Tip,dark=palette.Body;
-            var fill=new LinearGradientBrush();fill.StartPoint=new Point(0,0);fill.EndPoint=new Point(0.8,1);fill.GradientStops.Add(new GradientStop(light,0));fill.GradientStops.Add(new GradientStop(dark,0.57));fill.GradientStops.Add(new GradientStop(light,1));
+            var fill=WhiteRingMaterial(Mix(light,Colors.White,0.24),Mix(dark,Colors.Black,0.12));
             dc.PushTransform(new TranslateTransform(0,1.6));dc.DrawGeometry(new SolidColorBrush(Color.FromArgb(25,dark.R,dark.G,dark.B)),new Pen(new SolidColorBrush(Color.FromArgb(15,dark.R,dark.G,dark.B)),4),arc);dc.Pop();
             dc.DrawGeometry(fill,new Pen(new SolidColorBrush(Color.FromArgb(120,light.R,light.G,light.B)),1),arc);
-            dc.PushClip(arc);var glint=new RadialGradientBrush();glint.Center=new Point(0.5,0.18);glint.GradientOrigin=new Point(0.5,0.18);glint.RadiusX=0.60;glint.RadiusY=0.80;glint.GradientStops.Add(new GradientStop(Color.FromArgb(80,255,255,255),0));glint.GradientStops.Add(new GradientStop(Colors.Transparent,1));dc.DrawRectangle(glint,null,new Rect(c-r,c-r,2*r,2*r));dc.Pop();
+            dc.PushClip(arc);var glint=new RadialGradientBrush();glint.Center=new Point(0.5,0.18);glint.GradientOrigin=new Point(0.5,0.18);glint.RadiusX=0.60;glint.RadiusY=0.80;glint.GradientStops.Add(new GradientStop(Color.FromArgb(80,255,255,255),0));glint.GradientStops.Add(new GradientStop(Colors.Transparent,1));dc.DrawRectangle(glint,null,new Rect(c-r,c-r,2*r,2*r));
+            var bevel=new LinearGradientBrush(Color.FromArgb(170,255,255,255),Color.FromArgb(55,0,0,0),135);dc.DrawEllipse(null,new Pen(bevel,1.3),new Point(c,c),r-0.65,r-0.65);dc.DrawEllipse(null,new Pen(bevel,1.1),new Point(c,c),inner+0.55,inner+0.55);dc.Pop();
         }
         for(int i=12;i>=1;i--)dc.DrawEllipse(new SolidColorBrush(Color.FromArgb((byte)(i<5?12:4),33,43,35)),null,new Point(c,c+4),inner+i*0.9,inner+i*0.9);
         var white=new LinearGradientBrush(Colors.White,Color.FromRgb(251,252,251),90);dc.DrawEllipse(white,new Pen(new SolidColorBrush(Color.FromRgb(250,252,250)),1),new Point(c,c),inner,inner);
@@ -71,7 +77,8 @@ class RingWindow : Window {
     public RingWindow(bool preview=false,bool darkStyle=false){
         previewMode=preview;dark=darkStyle;store=Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),dark?"CodexUsageAurora":"CodexUsageRing");
         Title=dark?"Codex 极光圆环":"Codex 用量圆环";Width=130;Height=130;WindowStyle=WindowStyle.None;ResizeMode=ResizeMode.NoResize;AllowsTransparency=true;Background=Brushes.Transparent;Topmost=true;ShowInTaskbar=false;FontFamily=new FontFamily("Microsoft YaHei UI");
-        var root=new Grid{Width=260,Height=260,LayoutTransform=new ScaleTransform(0.5,0.5)};card=new Border{Background=Brushes.White,BorderBrush=B("#E4E8E6"),BorderThickness=new Thickness(1),CornerRadius=new CornerRadius(dark?48:20),Margin=new Thickness(16),Opacity=dark?0.98:0.97,Effect=new System.Windows.Media.Effects.DropShadowEffect{Color=dark?Color.FromRgb(10,11,36):Color.FromRgb(21,31,27),BlurRadius=dark?17:12,ShadowDepth=dark?5:4,Opacity=dark?0.36:0.20}};
+        double cornerRadius=dark?48:42;
+        var root=new Grid{Width=260,Height=260,LayoutTransform=new ScaleTransform(0.5,0.5)};card=new Border{Background=Brushes.White,BorderBrush=B("#E4E8E6"),BorderThickness=new Thickness(1),CornerRadius=new CornerRadius(cornerRadius),Margin=new Thickness(16),Opacity=dark?0.98:0.97,Effect=new System.Windows.Media.Effects.DropShadowEffect{Color=dark?Color.FromRgb(10,11,36):Color.FromRgb(21,31,27),BlurRadius=dark?17:12,ShadowDepth=dark?5:4,Opacity=dark?0.36:0.20}};
         if(dark){var body=new LinearGradientBrush();body.StartPoint=new Point(0.15,0);body.EndPoint=new Point(0.85,1);body.GradientStops.Add(new GradientStop(B("#21195A").Color,0));body.GradientStops.Add(new GradientStop(B("#10122C").Color,0.46));body.GradientStops.Add(new GradientStop(B("#090F1C").Color,1));card.Background=body;card.BorderBrush=new LinearGradientBrush(B("#A09ACA").Color,B("#202C3D").Color,90);card.BorderThickness=new Thickness(1.2);}
         var grid=new Grid();if(dark)grid.Children.Add(new AuroraShine());
         var host=new Grid{Width=200,Height=200};ring=new RingSurface{Dark=dark};host.Children.Add(ring);
@@ -79,7 +86,7 @@ class RingWindow : Window {
         var line=new StackPanel{Orientation=Orientation.Horizontal,HorizontalAlignment=HorizontalAlignment.Center};percent=new TextBlock{Text="—",FontFamily=new FontFamily("Segoe UI"),FontSize=dark?54:39,FontWeight=dark?FontWeights.SemiBold:FontWeights.Bold,Foreground=B(dark?"#F7F6FD":"#101813")};line.Children.Add(percent);line.Children.Add(new TextBlock{Text="%",FontSize=dark?18:13,FontWeight=FontWeights.SemiBold,Foreground=B(dark?"#E0DBEF":"#1C2720"),VerticalAlignment=VerticalAlignment.Center,Margin=new Thickness(1,13,0,0)});center.Children.Add(line);
         countdown=new TextBlock{Text="读取重置时间…",FontSize=dark?16:11,FontWeight=FontWeights.Medium,Foreground=B(dark?"#B8B9D0":"#637369"),Margin=new Thickness(0,3,0,0),HorizontalAlignment=HorizontalAlignment.Center};center.Children.Add(countdown);
         host.Children.Add(center);var scale=new Viewbox{Width=200,Height=200,Child=host,Stretch=Stretch.Uniform,HorizontalAlignment=HorizontalAlignment.Center,VerticalAlignment=VerticalAlignment.Center};grid.Children.Add(scale);card.Child=grid;root.Children.Add(card);
-        sweep=new FrameGlow{Radius=dark?48:20,Inset=0.6,Margin=card.Margin};root.Children.Add(sweep);Content=root;
+        sweep=new FrameGlow{Radius=cornerRadius,Inset=0.6,Margin=card.Margin};root.Children.Add(sweep);Content=root;
         card.MouseLeftButtonDown+=(s,e)=>{try{DragMove();Save();}catch{}};
         var menu=new ContextMenu();ContextMenu=menu;Add(menu,"立即刷新额度",()=>{forceRead=true;refresh.Set();});Add(menu,"测试整框红光（3秒）",()=>{if(SkinController.Running)SkinController.NotifyActive();else Notify();});SkinController.AddMenu(menu,dark?"aurora":"ring");var pin=new MenuItem{Header="始终置顶",IsCheckable=true,IsChecked=true};pin.Click+=(s,e)=>Topmost=pin.IsChecked;menu.Items.Add(pin);Add(menu,"收起到托盘",()=>Hide());menu.Items.Add(new Separator());Add(menu,"退出悬浮窗",Close);
         Directory.CreateDirectory(store);Restore();

@@ -306,7 +306,7 @@ class FloatWindow : Window {
             var title=new StackPanel{Margin=new Thickness(16,0,0,0),HorizontalAlignment=HorizontalAlignment.Left,VerticalAlignment=VerticalAlignment.Center};
             var shadow=new System.Windows.Media.Effects.DropShadowEffect{BlurRadius=4,ShadowDepth=0,Color=Colors.Black,Opacity=0.9};
             title.Children.Add(new TextBlock{Text="CODEX",FontFamily=new FontFamily("Segoe UI"),FontWeight=FontWeights.ExtraBold,FontSize=17,Foreground=Brush("#F0F4FA"),Effect=shadow});
-            title.Children.Add(new TextBlock{Text=row.Label+" · 剩余额度",FontSize=11,FontWeight=FontWeights.Medium,Foreground=Brush("#C6CFDA"),Margin=new Thickness(0,3,0,0),Effect=shadow});group.Children.Add(title);
+            title.Children.Add(new TextBlock{Text=row.Reset==DateTime.MinValue?"重置时间暂无":"重置 "+row.Reset.ToString("M/d HH:mm"),FontSize=11,FontWeight=FontWeights.Medium,Foreground=Brush("#C6CFDA"),Margin=new Thickness(0,3,0,0),Effect=shadow});group.Children.Add(title);
             var number=new StackPanel{Orientation=Orientation.Horizontal,HorizontalAlignment=HorizontalAlignment.Right,VerticalAlignment=VerticalAlignment.Center,Margin=new Thickness(0,0,15,0),Effect=shadow};
             number.Children.Add(new TextBlock{Text=row.Remaining.ToString("0.#"),FontFamily=new FontFamily("Segoe UI"),FontSize=34,FontWeight=FontWeights.Bold,Foreground=Brush("#F1F4F9")});
             number.Children.Add(new TextBlock{Text="%"+(stale?"*":""),FontFamily=new FontFamily("Segoe UI"),FontSize=15,FontWeight=FontWeights.SemiBold,Foreground=Brush("#E1E7EF"),VerticalAlignment=VerticalAlignment.Center,Margin=new Thickness(1,8,0,0)});group.Children.Add(number);quotaPanel.Children.Add(group);
