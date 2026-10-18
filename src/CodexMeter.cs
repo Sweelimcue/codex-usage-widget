@@ -155,18 +155,20 @@ class EnergySurface : FrameworkElement {
         double w=ActualWidth,h=ActualHeight;if(w<=0||h<=0)return;
         double t=elapsed.Elapsed.TotalSeconds,p=double.IsNaN(DisplayedRemaining)?Remaining:DisplayedRemaining,x=w*Math.Max(0,Math.Min(100,p))/100;
         Color start,body,tip;
-        if(Remaining>50){start=Color.FromRgb(115,192,163);body=Color.FromRgb(0,77,210);tip=Color.FromRgb(49,177,255);}
-        else if(Remaining>30){start=Color.FromRgb(76,120,213);body=Color.FromRgb(87,39,174);tip=Color.FromRgb(182,136,255);}
-        else if(Remaining>10){start=Color.FromRgb(168,111,32);body=Color.FromRgb(219,121,0);tip=Color.FromRgb(255,218,83);}
-        else{start=Color.FromRgb(126,46,89);body=Color.FromRgb(197,31,62);tip=Color.FromRgb(255,129,83);}
+        if(Remaining>50){start=Color.FromRgb(9,23,58);body=Color.FromRgb(0,77,210);tip=Color.FromRgb(49,177,255);}
+        else if(Remaining>30){start=Color.FromRgb(27,15,52);body=Color.FromRgb(87,39,174);tip=Color.FromRgb(182,136,255);}
+        else if(Remaining>10){start=Color.FromRgb(65,32,7);body=Color.FromRgb(219,121,0);tip=Color.FromRgb(255,218,83);}
+        else{start=Color.FromRgb(59,14,28);body=Color.FromRgb(197,31,62);tip=Color.FromRgb(255,129,83);}
         dc.PushClip(new RectangleGeometry(new Rect(0,0,w,h),16,16));dc.DrawRectangle(new SolidColorBrush(Color.FromRgb(20,23,27)),null,new Rect(0,0,w,h));
         if(x>0.01){
             const int samples=49;var pts=new Point[samples];for(int i=0;i<samples;i++){double y=h*i/(samples-1);pts[i]=new Point(Edge(y,t,x),y);}
             var region=new StreamGeometry();using(var g=region.Open()){g.BeginFigure(new Point(0,0),true,true);g.LineTo(pts[0],true,false);for(int i=1;i<samples;i++)g.LineTo(pts[i],true,false);g.LineTo(new Point(0,h),true,false);}region.Freeze();
-            var fill=new LinearGradientBrush();fill.StartPoint=new Point(0,0);fill.EndPoint=new Point(1,0);fill.GradientStops.Add(new GradientStop(start,0));fill.GradientStops.Add(new GradientStop(body,0.25));fill.GradientStops.Add(new GradientStop(body,0.80));fill.GradientStops.Add(new GradientStop(tip,1));
+            var fill=new LinearGradientBrush();fill.StartPoint=new Point(0,0);fill.EndPoint=new Point(1,0);fill.GradientStops.Add(new GradientStop(start,0));fill.GradientStops.Add(new GradientStop(body,0.58));fill.GradientStops.Add(new GradientStop(tip,1));
             dc.DrawGeometry(fill,null,region);
             dc.PushClip(region);
+            dc.PushClip(new RectangleGeometry(new Rect(x*0.55,0,x*0.45+8,h)));
             for(int i=0;i<5;i++){double cy=h*(0.1+0.2*i)+Math.Sin(t*0.8+i)*6;var glow=new RadialGradientBrush();glow.GradientStops.Add(new GradientStop(Alpha(tip,35),0));glow.GradientStops.Add(new GradientStop(Alpha(tip,0),1));dc.DrawEllipse(glow,null,new Point(x-13+Math.Sin(t+i)*4,cy),24,15);}
+            dc.Pop();
             // Stable, gently drifting stars span the whole fill; its clip keeps the spent area clear.
             const int particleColumns=8,particleRows=4;
             for(int row=0;row<particleRows;row++)for(int col=0;col<particleColumns;col++){
@@ -179,7 +181,7 @@ class EnergySurface : FrameworkElement {
             dc.Pop();
             var edge=new StreamGeometry();using(var g=edge.Open()){g.BeginFigure(pts[0],false,false);for(int i=1;i<samples;i++)g.LineTo(pts[i],true,false);}edge.Freeze();
             double pulse=(0.93+0.07*Math.Sin(t*2.1))*Intensity;
-            for(int i=4;i>=1;i--){var pen=new Pen(new SolidColorBrush(Alpha(tip,(byte)Math.Min(255,(11+7*(5-i))*pulse))),i*2.7);pen.LineJoin=PenLineJoin.Round;dc.DrawGeometry(null,pen,edge);}
+            for(int i=4;i>=1;i--){var pen=new Pen(new SolidColorBrush(Alpha(tip,(byte)Math.Min(255,(11+7*(5-i))*pulse))),i*2.7*Math.Min(1,x/24));pen.LineJoin=PenLineJoin.Round;dc.DrawGeometry(null,pen,edge);}
             dc.DrawGeometry(null,new Pen(new SolidColorBrush(Alpha(tip,(byte)(220*pulse))),2.3),edge);
             dc.DrawGeometry(null,new Pen(new SolidColorBrush(Alpha(Color.FromRgb(227,250,255),(byte)(255*pulse))),0.9),edge);
         }
