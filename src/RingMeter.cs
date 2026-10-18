@@ -68,7 +68,7 @@ class AuroraShine : FrameworkElement {
 class RingWindow : Window {
     readonly string store;readonly bool dark;
     readonly string shared=Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),"CodexUsageFloat","quota-cache.json");
-    Border card;RingSurface ring;TextBlock percent,countdown;PerimeterSweep sweep;Forms.NotifyIcon tray;
+    Border card;RingSurface ring;TextBlock percent,countdown;FrameGlow sweep;Forms.NotifyIcon tray;
     DispatcherTimer clock,scanTimer;TaskMonitor monitor;Rpc rpc;object rpcLock=new object();AutoResetEvent refresh=new AutoResetEvent(false);CancellationTokenSource cancel=new CancellationTokenSource();bool closing;int scanBusy;DateTime reset=DateTime.MinValue;DateTime updated;object current;
     public bool IsSweeping {get{return sweep.Active;}}public double SweepPhase {get{return sweep.Phase;}}public bool IsDark {get{return dark;}}
     static SolidColorBrush B(string color){return (SolidColorBrush)new BrushConverter().ConvertFromString(color);}
@@ -83,9 +83,9 @@ class RingWindow : Window {
         var line=new StackPanel{Orientation=Orientation.Horizontal,HorizontalAlignment=HorizontalAlignment.Center};percent=new TextBlock{Text="—",FontFamily=new FontFamily("Segoe UI"),FontSize=dark?54:39,FontWeight=dark?FontWeights.SemiBold:FontWeights.Bold,Foreground=B(dark?"#F7F6FD":"#101813")};line.Children.Add(percent);line.Children.Add(new TextBlock{Text="%",FontSize=dark?18:13,FontWeight=FontWeights.SemiBold,Foreground=B(dark?"#E0DBEF":"#1C2720"),VerticalAlignment=VerticalAlignment.Center,Margin=new Thickness(1,13,0,0)});center.Children.Add(line);
         countdown=new TextBlock{Text="读取重置时间…",FontSize=dark?16:11,FontWeight=FontWeights.Medium,Foreground=B(dark?"#B8B9D0":"#637369"),Margin=new Thickness(0,3,0,0),HorizontalAlignment=HorizontalAlignment.Center};center.Children.Add(countdown);
         host.Children.Add(center);var scale=new Viewbox{Width=200,Height=200,Child=host,Stretch=Stretch.Uniform,HorizontalAlignment=HorizontalAlignment.Center,VerticalAlignment=VerticalAlignment.Center};grid.Children.Add(scale);card.Child=grid;root.Children.Add(card);
-        sweep=new PerimeterSweep{Radius=dark?48:20,Inset=0.6,Margin=card.Margin};root.Children.Add(sweep);Content=root;
+        sweep=new FrameGlow{Radius=dark?48:20,Inset=0.6,Margin=card.Margin};root.Children.Add(sweep);Content=root;
         card.MouseLeftButtonDown+=(s,e)=>{try{DragMove();Save();}catch{}};
-        var menu=new ContextMenu();ContextMenu=menu;Add(menu,"立即刷新额度",()=>{forceRead=true;refresh.Set();});Add(menu,"测试红色扫光（3秒）",()=>{if(SkinController.Running)SkinController.NotifyActive();else Notify();});SkinController.AddMenu(menu,dark?"aurora":"ring");var pin=new MenuItem{Header="始终置顶",IsCheckable=true,IsChecked=true};pin.Click+=(s,e)=>Topmost=pin.IsChecked;menu.Items.Add(pin);Add(menu,"收起到托盘",()=>Hide());menu.Items.Add(new Separator());Add(menu,"退出悬浮窗",Close);
+        var menu=new ContextMenu();ContextMenu=menu;Add(menu,"立即刷新额度",()=>{forceRead=true;refresh.Set();});Add(menu,"测试整框红光（3秒）",()=>{if(SkinController.Running)SkinController.NotifyActive();else Notify();});SkinController.AddMenu(menu,dark?"aurora":"ring");var pin=new MenuItem{Header="始终置顶",IsCheckable=true,IsChecked=true};pin.Click+=(s,e)=>Topmost=pin.IsChecked;menu.Items.Add(pin);Add(menu,"收起到托盘",()=>Hide());menu.Items.Add(new Separator());Add(menu,"退出悬浮窗",Close);
         Directory.CreateDirectory(store);Restore();
         clock=new DispatcherTimer{Interval=TimeSpan.FromSeconds(1)};clock.Tick+=(s,e)=>{UpdateCountdown();if(Program.ShowSignal!=null&&Program.ShowSignal.WaitOne(0)){Show();Activate();}};clock.Start();
         Closing+=(s,e)=>{closing=true;Save();clock.Stop();if(scanTimer!=null)scanTimer.Stop();sweep.Stop();cancel.Cancel();refresh.Set();if(tray!=null)tray.Dispose();lock(rpcLock){if(rpc!=null)rpc.Dispose();rpc=null;}};

@@ -1,5 +1,11 @@
 # Changelog
 
+## v1.0.2 — 2026-10-18
+
+- Replace perimeter scanning with a red glow across the entire widget for task completion.
+- Keep the three-second lifetime, rounded clipping, and alert continuity during skin changes.
+- Add offline render exports for nine capsule quota levels and completion-glow animation frames.
+
 ## v1.0.1 — 2026-10-18
 
 - Distribute the capsule's glowing particles across the entire remaining-quota fill.

@@ -197,32 +197,29 @@ class UniformRimBorder : Border {
     }
 }
 
-class PerimeterSweep : FrameworkElement {
+class FrameGlow : FrameworkElement {
     public double Radius=21,Inset=2.5;readonly Stopwatch elapsed=new Stopwatch();readonly DispatcherTimer timer;double duration=3;
     public bool Active {get;private set;}
     public double Phase {get{return elapsed.Elapsed.TotalSeconds/duration;}}
-    public PerimeterSweep(){IsHitTestVisible=false;timer=new DispatcherTimer(DispatcherPriority.Render){Interval=TimeSpan.FromMilliseconds(25)};timer.Tick+=(s,e)=>{if(elapsed.Elapsed.TotalSeconds>=duration)Stop();else InvalidateVisual();};Unloaded+=(s,e)=>Stop();}
+    public FrameGlow(){IsHitTestVisible=false;timer=new DispatcherTimer(DispatcherPriority.Render){Interval=TimeSpan.FromMilliseconds(25)};timer.Tick+=(s,e)=>{if(elapsed.Elapsed.TotalSeconds>=duration)Stop();else InvalidateVisual();};Unloaded+=(s,e)=>Stop();}
     public void Start(double seconds=3){duration=seconds;Active=true;elapsed.Restart();timer.Start();InvalidateVisual();}
     public void Stop(){Active=false;timer.Stop();elapsed.Stop();InvalidateVisual();}
-    static Point At(double distance,double w,double h,double r){
-        double straightW=w-2*r,straightH=h-2*r,quarter=Math.PI*r/2,total=2*straightW+2*straightH+4*quarter;
-        double d=(distance%total+total)%total;
-        if(d<straightW)return new Point(r+d,0);d-=straightW;
-        if(d<quarter){double a=-Math.PI/2+d/r;return new Point(w-r+r*Math.Cos(a),r+r*Math.Sin(a));}d-=quarter;
-        if(d<straightH)return new Point(w,r+d);d-=straightH;
-        if(d<quarter){double a=d/r;return new Point(w-r+r*Math.Cos(a),h-r+r*Math.Sin(a));}d-=quarter;
-        if(d<straightW)return new Point(w-r-d,h);d-=straightW;
-        if(d<quarter){double a=Math.PI/2+d/r;return new Point(r+r*Math.Cos(a),h-r+r*Math.Sin(a));}d-=quarter;
-        if(d<straightH)return new Point(0,h-r-d);d-=straightH;
-        double angle=Math.PI+d/r;return new Point(r+r*Math.Cos(angle),r+r*Math.Sin(angle));
-    }
-    protected override void OnRender(DrawingContext dc){if(!Active||ActualWidth<12||ActualHeight<12)return;
-        double inset=Inset;double w=ActualWidth-2*inset,h=ActualHeight-2*inset,r=Math.Max(1,Math.Min(Radius-inset,Math.Min(w,h)/2));
-        double length=2*(w-2*r)+2*(h-2*r)+2*Math.PI*r,head=Phase*length,tail=length*0.30;
-        dc.PushTransform(new TranslateTransform(inset,inset));
-        for(int i=0;i<70;i++){double strength=(i+1)/70.0;Point a=At(head-tail+tail*i/70,w,h,r),b=At(head-tail+tail*(i+1)/70,w,h,r);
-            foreach(double width in new[]{13.0,8.0,4.0,1.7}){double fade=Math.Min(1,Math.Max(0,(duration-elapsed.Elapsed.TotalSeconds)/0.25));byte alpha=(byte)(strength*strength*fade*(width>10?20:width>6?35:width>3?95:235));Color color=width<2?Color.FromArgb(alpha,255,216,207):Color.FromArgb(alpha,255,44,51);var pen=new Pen(new SolidColorBrush(color),width){StartLineCap=PenLineCap.Flat,EndLineCap=PenLineCap.Flat};dc.DrawLine(pen,a,b);}
-        }dc.Pop();
+    protected override void OnRender(DrawingContext dc){
+        if(!Active||ActualWidth<12||ActualHeight<12)return;
+        double time=elapsed.Elapsed.TotalSeconds;
+        double fade=Math.Min(1,time/0.18)*Math.Min(1,Math.Max(0,(duration-time)/0.45));
+        double strength=fade*(0.92+0.08*Math.Sin(time*5.4));
+        var bounds=new Rect(0,0,ActualWidth,ActualHeight);double r=Math.Min(Radius,Math.Min(ActualWidth,ActualHeight)/2);
+        dc.PushOpacity(strength);
+        var outline=new Rect(Inset,Inset,ActualWidth-2*Inset,ActualHeight-2*Inset);
+        for(int i=6;i>=1;i--){var glow=new SolidColorBrush(Color.FromArgb((byte)(7+(6-i)*3),255,32,52));dc.DrawRoundedRectangle(null,new Pen(glow,i*2.5),outline,Math.Max(1,r-Inset),Math.Max(1,r-Inset));}
+        var wash=new LinearGradientBrush{StartPoint=new Point(0,0),EndPoint=new Point(0.15,1)};
+        wash.GradientStops.Add(new GradientStop(Color.FromArgb(134,255,46,70),0));
+        wash.GradientStops.Add(new GradientStop(Color.FromArgb(108,255,24,53),0.48));
+        wash.GradientStops.Add(new GradientStop(Color.FromArgb(144,255,42,64),1));
+        dc.DrawRoundedRectangle(wash,null,bounds,r,r);
+        dc.DrawRoundedRectangle(null,new Pen(new SolidColorBrush(Color.FromArgb(210,255,87,99)),1.6),outline,Math.Max(1,r-Inset),Math.Max(1,r-Inset));
+        dc.Pop();
     }
 }
 
@@ -230,16 +227,18 @@ class PerimeterSweep : FrameworkElement {
 class FloatWindow : Window {
     readonly string store=System.IO.Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),"CodexUsageFloat");
     readonly string codexHome=Environment.GetEnvironmentVariable("CODEX_HOME")??System.IO.Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.UserProfile),".codex");
-    Border frame;StackPanel quotaPanel;Ellipse lamp;Forms.NotifyIcon tray;PerimeterSweep sweep;
+    Border frame;StackPanel quotaPanel;Ellipse lamp;Forms.NotifyIcon tray;FrameGlow sweep;
     DispatcherTimer clock,scanTimer,autoStop;int unread,scanBusy;bool closing;DateTime updated;object latestResult;
     TaskMonitor monitor;AutoResetEvent refresh=new AutoResetEvent(false);CancellationTokenSource cancel=new CancellationTokenSource();Rpc rpc;readonly object rpcGate=new object();
     public bool IsFlashing {get{return sweep!=null&&sweep.Active;}}
     public Border Frame {get{return frame;}}
-    public PerimeterSweep Sweep {get{return sweep;}}
+    public FrameGlow Glow {get{return sweep;}}
     public object CurrentQuota {get{return latestResult;}}
     static SolidColorBrush Brush(string color){return (SolidColorBrush)new BrushConverter().ConvertFromString(color);}
     static LinearGradientBrush WhiteRim(bool alert){var b=new LinearGradientBrush{StartPoint=new Point(0,0),EndPoint=new Point(0.08,1)};string[] colors=alert?new[]{"#FFFFFF","#F3FFF9","#E0F7EA","#B5DACC","#FFFFFF","#E1F3EA","#9CBFB0"}:new[]{"#FFFFFF","#FFFFFF","#F0F3F7","#C5CFD9","#FFFFFF","#E5EBF0","#9CA9B7"};double[] offsets={0,0.18,0.40,0.54,0.66,0.84,1};for(int i=0;i<colors.Length;i++)b.GradientStops.Add(new GradientStop(Brush(colors[i]).Color,offsets[i]));return b;}
+    readonly bool previewMode;
     public FloatWindow(bool preview=false){
+        previewMode=preview;
         Title="Codex 用量胶囊";Width=298;Height=114;WindowStyle=WindowStyle.None;ResizeMode=ResizeMode.NoResize;AllowsTransparency=true;Background=Brushes.Transparent;Topmost=true;ShowInTaskbar=false;FontFamily=new FontFamily("Microsoft YaHei UI");
         frame=(Border)XamlReader.Parse(@"<Border xmlns='http://schemas.microsoft.com/winfx/2006/xaml/presentation' xmlns:x='http://schemas.microsoft.com/winfx/2006/xaml' Background='Transparent' Opacity='0.92' BorderThickness='5' CornerRadius='21' Margin='16,12,16,20'>
           <Border.Effect><DropShadowEffect Color='#07111D' BlurRadius='16' ShadowDepth='5' Direction='270' Opacity='0.62'/></Border.Effect>
@@ -249,10 +248,10 @@ class FloatWindow : Window {
           </Grid></Border>");
         Border parsed=frame;UIElement body=parsed.Child;parsed.Child=null;
         frame=new UniformRimBorder{Child=body,Background=parsed.Background,Opacity=parsed.Opacity,BorderThickness=parsed.BorderThickness,CornerRadius=parsed.CornerRadius,Margin=parsed.Margin,Effect=parsed.Effect,BorderBrush=WhiteRim(false)};
-        NameScope.SetNameScope(frame,NameScope.GetNameScope(parsed));var root=new Grid();root.Children.Add(frame);sweep=new PerimeterSweep{Radius=21,Margin=frame.Margin};root.Children.Add(sweep);Content=root;quotaPanel=(StackPanel)frame.FindName("Quotas");lamp=(Ellipse)frame.FindName("Lamp");
+        NameScope.SetNameScope(frame,NameScope.GetNameScope(parsed));var root=new Grid();root.Children.Add(frame);sweep=new FrameGlow{Radius=21,Margin=frame.Margin};root.Children.Add(sweep);Content=root;quotaPanel=(StackPanel)frame.FindName("Quotas");lamp=(Ellipse)frame.FindName("Lamp");
         frame.MouseLeftButtonDown+=(s,e)=>{try{DragMove();Save();}catch{}};
         var menu=new ContextMenu();ContextMenu=menu;
-        Add(menu,"立即刷新额度",()=>refresh.Set());Add(menu,"测试红色扫光（3秒）",()=>{if(SkinController.Running)SkinController.NotifyActive();else Notify("扫光演示",1);});SkinController.AddMenu(menu,"capsule");
+        Add(menu,"立即刷新额度",()=>refresh.Set());Add(menu,"测试整框红光（3秒）",()=>{if(SkinController.Running)SkinController.NotifyActive();else Notify("红光演示",1);});SkinController.AddMenu(menu,"capsule");
         var pin=new MenuItem{Header="始终置顶",IsCheckable=true,IsChecked=true};pin.Click+=(s,e)=>Topmost=pin.IsChecked;menu.Items.Add(pin);
         Add(menu,"收起到托盘",()=>Hide());menu.Items.Add(new Separator());Add(menu,"退出",()=>Close());
         Directory.CreateDirectory(store);Restore();RenderQuota(null,false);
@@ -272,10 +271,10 @@ class FloatWindow : Window {
     }
     void Add(ContextMenu m,string title,Action action){var item=new MenuItem{Header=title};item.Click+=(s,e)=>action();m.Items.Add(item);}
     void Restore(){Left=SystemParameters.WorkArea.Right-Width-26;Top=SystemParameters.WorkArea.Top+80;try{string file=System.IO.Path.Combine(store,"settings.json");if(File.Exists(file)){object d=Data.Json().DeserializeObject(File.ReadAllText(file));Left=Data.Num(Data.Get(d,"left"),Left);Top=Data.Num(Data.Get(d,"top"),Top);}}catch{}Left=Math.Max(SystemParameters.VirtualScreenLeft,Math.Min(Left,SystemParameters.VirtualScreenLeft+SystemParameters.VirtualScreenWidth-Width));Top=Math.Max(SystemParameters.VirtualScreenTop,Math.Min(Top,SystemParameters.VirtualScreenTop+SystemParameters.VirtualScreenHeight-Height));}
-    void Save(){try{Data.Atomic(System.IO.Path.Combine(store,"settings.json"),Data.Json().Serialize(new{left=Left,top=Top}));}catch{}}
+    void Save(){if(previewMode)return;try{Data.Atomic(System.IO.Path.Combine(store,"settings.json"),Data.Json().Serialize(new{left=Left,top=Top}));}catch{}}
     void SetEnergy(double intensity){foreach(Grid g in quotaPanel.Children.OfType<Grid>())foreach(EnergySurface e in g.Children.OfType<EnergySurface>()){e.Intensity=intensity;e.InvalidateVisual();}}
-    public void Notify(string title,int count){unread+=count;ResumeSweep(3);}
-    public void ResumeSweep(double seconds){lamp.Fill=Brush("#FF5D55");autoStop.Stop();autoStop.Interval=TimeSpan.FromSeconds(seconds);autoStop.Start();if(!IsVisible)Show();sweep.Start(seconds);}
+    public void Notify(string title,int count){unread+=count;ResumeAlert(3);}
+    public void ResumeAlert(double seconds){lamp.Fill=Brush("#FF5D55");autoStop.Stop();autoStop.Interval=TimeSpan.FromSeconds(seconds);autoStop.Start();if(!IsVisible)Show();sweep.Start(seconds);}
     void Ack(){autoStop.Stop();unread=0;sweep.Stop();lamp.Fill=Brush("#485466");lamp.Effect=null;frame.BorderBrush=WhiteRim(false);SetEnergy(0.8);}
     void ScanTasks(){if(Interlocked.Exchange(ref scanBusy,1)==1)return;Task.Run(()=>{try{List<Completion> events;lock(monitor)events=monitor.Scan();Dispatcher.BeginInvoke(new Action(()=>{if(events.Count>0){if(SkinController.Running)SkinController.NotifyActive();else if(!closing)Notify(events.Last().Title,events.Count);if(!closing)refresh.Set();}}));}catch{}finally{Interlocked.Exchange(ref scanBusy,0);}});}
     void QuotaLoop(){while(!cancel.IsCancellationRequested){try{
@@ -299,7 +298,7 @@ class FloatWindow : Window {
             number.Children.Add(new TextBlock{Text=row.Remaining.ToString("0.#"),FontFamily=new FontFamily("Segoe UI"),FontSize=27,FontWeight=FontWeights.Normal,Foreground=Brush("#F1F4F9")});
             number.Children.Add(new TextBlock{Text="%"+(stale?"*":""),FontFamily=new FontFamily("Segoe UI"),FontSize=13,Foreground=Brush("#E1E7EF"),VerticalAlignment=VerticalAlignment.Center,Margin=new Thickness(1,6,0,0)});group.Children.Add(number);quotaPanel.Children.Add(group);
         }
-        frame.ToolTip=string.Join("\n",rows.Select(r=>r.Label+"剩余 "+r.Remaining.ToString("0.#")+"%"+(r.Reset==DateTime.MinValue?"":" · "+r.Reset.ToString("M/d HH:mm")+" 重置")))+"\n"+(stale?"* 缓存额度 · ":"已同步 ")+updated.ToString("HH:mm:ss")+"\n拖动移动 · 右键操作 · 完成红光扫边3秒";
+        frame.ToolTip=string.Join("\n",rows.Select(r=>r.Label+"剩余 "+r.Remaining.ToString("0.#")+"%"+(r.Reset==DateTime.MinValue?"":" · "+r.Reset.ToString("M/d HH:mm")+" 重置")))+"\n"+(stale?"* 缓存额度 · ":"已同步 ")+updated.ToString("HH:mm:ss")+"\n拖动移动 · 右键操作 · 完成整框红光3秒";
     }
     public void SetPreviewQuota(object result){latestResult=result;updated=DateTime.Now;RenderQuota(result,false);}
     public void LoadPreviewQuota(){using(var r=new Rpc()){latestResult=r.Request("account/rateLimits/read");}updated=DateTime.Now;RenderQuota(latestResult,false);}
@@ -315,6 +314,8 @@ static class Program {
         try{
             if(args.Contains("--compare-preview")||args.Contains("--ring-test"))return RingProgram.Main(args);
             if(args.Contains("--skin-test"))return SkinController.Test(args.Last());
+            if(args.Contains("--stages-preview"))return RenderPreviews.Stages(args.Last());
+            if(args.Contains("--alert-preview"))return RenderPreviews.Alert(args.Last());
             if(args.Contains("--skin-preview")||args.Contains("--demo-preview"))return SkinController.Preview(args.Last(),args.Contains("--demo-preview"));
             if(args.Contains("--self-test")){SelfTest(args.Last());return 0;}
             if(args.Contains("--diagnose")){using(var rpc=new Rpc()){object r=rpc.Request("account/rateLimits/read");var qs=Data.Quotas(r);Data.Atomic(args.Last(),Data.Json().Serialize(new{success=true,quotas=qs.Select(x=>new{label=x.Label,remaining=x.Remaining,reset=x.Reset.ToString("o")}).ToArray()}));}return 0;}
@@ -322,8 +323,8 @@ static class Program {
             if(args.Contains("--motion-preview")){string folder=args.Last();Directory.CreateDirectory(folder);var a=new Application();var w=new FloatWindow(true);w.LoadPreviewQuota();int frame=0;var timer=new DispatcherTimer{Interval=TimeSpan.FromMilliseconds(40)};timer.Tick+=(s,e)=>{w.CaptureScene(System.IO.Path.Combine(folder,"frame-"+(frame++).ToString("000")+".png"));if(frame>=75){timer.Stop();w.Close();}};timer.Start();a.Run(w);return 0;}
             if(args.Contains("--smoke-test")){var a=new Application();var w=new FloatWindow();var timer=new DispatcherTimer{Interval=TimeSpan.FromSeconds(8)};timer.Tick+=(s,e)=>{timer.Stop();w.Capture(args.Last());w.Close();};timer.Start();a.Run(w);return 0;}
             if(args.Contains("--ui-test")){var a=new Application();var w=new FloatWindow();int ticks=0;var colors=new HashSet<string>();var timer=new DispatcherTimer{Interval=TimeSpan.FromMilliseconds(200)};var duration=new Stopwatch();double stoppedAt=0;timer.Tick+=(s,e)=>{
-                ticks++;var f=w.Frame;var light=(Ellipse)f.FindName("Lamp");if(ticks==2){w.Notify("闪灯联动检查",1);duration.Start();}if(ticks>2&&ticks<16)colors.Add(Math.Round(w.Sweep.Phase,1).ToString());if(ticks>2&&!w.IsFlashing&&stoppedAt==0)stoppedAt=duration.Elapsed.TotalSeconds;
-                if(ticks==8)w.CaptureScene(System.IO.Path.Combine(System.IO.Path.GetDirectoryName(args.Last()),"capsule-red-sweep.png"));if(ticks==21){timer.Stop();bool stopped=!w.IsFlashing&&light.Fill.ToString()=="#FF485466";Data.Atomic(args.Last(),Data.Json().Serialize(new{perimeterSweepMoving=colors.Count>=2,autoStopped=stopped,stopObservedSeconds=stoppedAt,width=w.ActualWidth,height=w.ActualHeight,observedColors=colors.ToArray()}));w.Close();}};timer.Start();a.Run(w);return 0;}
+                ticks++;var f=w.Frame;var light=(Ellipse)f.FindName("Lamp");if(ticks==2){w.Notify("闪灯联动检查",1);duration.Start();}if(ticks>2&&ticks<16)colors.Add(Math.Round(w.Glow.Phase,1).ToString());if(ticks>2&&!w.IsFlashing&&stoppedAt==0)stoppedAt=duration.Elapsed.TotalSeconds;
+                if(ticks==8)w.CaptureScene(System.IO.Path.Combine(System.IO.Path.GetDirectoryName(args.Last()),"capsule-red-sweep.png"));if(ticks==21){timer.Stop();bool stopped=!w.IsFlashing&&light.Fill.ToString()=="#FF485466";Data.Atomic(args.Last(),Data.Json().Serialize(new{frameGlowAnimating=colors.Count>=2,autoStopped=stopped,stopObservedSeconds=stoppedAt,width=w.ActualWidth,height=w.ActualHeight,observedColors=colors.ToArray()}));w.Close();}};timer.Start();a.Run(w);return 0;}
             ShowSignal=new EventWaitHandle(false,EventResetMode.AutoReset,"Local\\CodexUsageFloat-Show-v1");
             bool created;instance=new Mutex(true,"Local\\CodexUsageFloat-v1",out created);if(!created){ShowSignal.Set();return 0;}
             var app=new Application();app.DispatcherUnhandledException+=(s,e)=>{MessageBox.Show("悬浮窗遇到错误："+e.Exception.Message,"Codex 用量悬浮窗");e.Handled=true;};SkinController.Start(app);app.Run();return 0;

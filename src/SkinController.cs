@@ -21,7 +21,7 @@ static class SkinController {
         if(old!=null){double right=old.Left+old.Width;next.Left=Math.Max(SystemParameters.VirtualScreenLeft,Math.Min(right-next.Width,SystemParameters.VirtualScreenLeft+SystemParameters.VirtualScreenWidth-next.Width));next.Top=Math.Max(SystemParameters.VirtualScreenTop,Math.Min(old.Top,SystemParameters.VirtualScreenTop+SystemParameters.VirtualScreenHeight-next.Height));}
         switching=true;try{if(old!=null)old.Close();Current=next;activeSkin=skin;Application.Current.MainWindow=next;next.Closed+=(s,e)=>{if(!switching&&Current==next){Running=false;Application.Current.Shutdown();}};next.Show();next.Activate();double remaining=(alertUntil-DateTime.UtcNow).TotalSeconds;if(remaining>0)Resume(remaining);Save();}finally{switching=false;}
     }
-    static void Resume(double seconds){var c=Current as FloatWindow;if(c!=null)c.ResumeSweep(seconds);var r=Current as RingWindow;if(r!=null)r.Notify(seconds);}
+    static void Resume(double seconds){var c=Current as FloatWindow;if(c!=null)c.ResumeAlert(seconds);var r=Current as RingWindow;if(r!=null)r.Notify(seconds);}
     public static void NotifyActive(){alertUntil=DateTime.UtcNow.AddSeconds(3);Resume(3);}
     static bool Active(){var c=Current as FloatWindow;if(c!=null)return c.IsFlashing;var r=Current as RingWindow;return r!=null&&r.IsSweeping;}
     static void ClickSkin(string name){var root=Current.ContextMenu.Items.OfType<MenuItem>().Single(x=>(string)x.Header=="皮肤");var item=root.Items.OfType<MenuItem>().Single(x=>(string)x.Header==name);item.RaiseEvent(new RoutedEventArgs(MenuItem.ClickEvent));}
