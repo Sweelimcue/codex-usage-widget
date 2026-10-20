@@ -1,5 +1,10 @@
 # Changelog
 
+## v1.0.9 — 2026-10-21
+
+- Embed the software icon in the executable, window metadata, and system tray for all skins.
+- Keep the icon self-contained so portable builds need no external icon files.
+
 ## v1.0.8 — 2026-10-18
 
 - Match the white skin's physical corner radius to the capsule and its completion glow.

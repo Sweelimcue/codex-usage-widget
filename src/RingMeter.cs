@@ -76,6 +76,7 @@ class RingWindow : Window {
     static SolidColorBrush B(string color){return (SolidColorBrush)new BrushConverter().ConvertFromString(color);}
     public RingWindow(bool preview=false,bool darkStyle=false){
         previewMode=preview;dark=darkStyle;store=Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),dark?"CodexUsageAurora":"CodexUsageRing");
+        Icon=SoftwareIcon.Window;
         Title=dark?"Codex 极光圆环":"Codex 用量圆环";Width=130;Height=130;WindowStyle=WindowStyle.None;ResizeMode=ResizeMode.NoResize;AllowsTransparency=true;Background=Brushes.Transparent;Topmost=true;ShowInTaskbar=false;FontFamily=new FontFamily("Microsoft YaHei UI");
         double cornerRadius=dark?48:42;
         var root=new Grid{Width=260,Height=260,LayoutTransform=new ScaleTransform(0.5,0.5)};card=new Border{Background=Brushes.White,BorderBrush=B("#E4E8E6"),BorderThickness=new Thickness(1),CornerRadius=new CornerRadius(cornerRadius),Margin=new Thickness(16),Opacity=dark?0.98:0.97,Effect=new System.Windows.Media.Effects.DropShadowEffect{Color=dark?Color.FromRgb(10,11,36):Color.FromRgb(21,31,27),BlurRadius=dark?17:12,ShadowDepth=dark?5:4,Opacity=dark?0.36:0.20}};
@@ -93,7 +94,7 @@ class RingWindow : Window {
         clock=new DispatcherTimer{Interval=TimeSpan.FromSeconds(1)};clock.Tick+=(s,e)=>{UpdateCountdown();if(Program.ShowSignal!=null&&Program.ShowSignal.WaitOne(0)){Show();Activate();}};clock.Start();
         Closing+=(s,e)=>{closing=true;Save();clock.Stop();if(scanTimer!=null)scanTimer.Stop();sweep.Stop();cancel.Cancel();refresh.Set();if(tray!=null)tray.Dispose();lock(rpcLock){if(rpc!=null)rpc.Dispose();rpc=null;}};
         if(preview)return;
-        tray=new Forms.NotifyIcon{Icon=System.Drawing.SystemIcons.Information,Text="Codex 用量圆环版",Visible=true};tray.DoubleClick+=(s,e)=>Dispatcher.BeginInvoke(new Action(()=>{Show();Activate();}));var tm=new Forms.ContextMenuStrip();tm.Items.Add("显示圆环版",null,(s,e)=>Dispatcher.BeginInvoke(new Action(()=>{Show();Activate();})));tm.Items.Add("退出圆环版",null,(s,e)=>Dispatcher.BeginInvoke(new Action(Close)));tray.ContextMenuStrip=tm;
+        tray=new Forms.NotifyIcon{Icon=SoftwareIcon.Tray,Text="Codex 用量圆环版",Visible=true};tray.DoubleClick+=(s,e)=>Dispatcher.BeginInvoke(new Action(()=>{Show();Activate();}));var tm=new Forms.ContextMenuStrip();tm.Items.Add("显示圆环版",null,(s,e)=>Dispatcher.BeginInvoke(new Action(()=>{Show();Activate();})));tm.Items.Add("退出圆环版",null,(s,e)=>Dispatcher.BeginInvoke(new Action(Close)));tray.ContextMenuStrip=tm;
         try{DateTime time;object value;if(ReadCache(out value,out time)){ApplyData(value,DateTime.Now-time>TimeSpan.FromMinutes(3),time);}}catch{}
         monitor=SkinController.SharedMonitor;
         scanTimer=new DispatcherTimer{Interval=TimeSpan.FromSeconds(2)};scanTimer.Tick+=(s,e)=>Scan();scanTimer.Start();Scan();Task.Run(()=>QuotaLoop());

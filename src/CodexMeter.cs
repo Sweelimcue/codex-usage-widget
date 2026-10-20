@@ -19,6 +19,14 @@ using System.Windows.Markup;
 using Forms = System.Windows.Forms;
 
 namespace CodexMeter {
+static class SoftwareIcon {
+    static readonly byte[] bytes=Read();
+    public static readonly System.Drawing.Icon Tray=LoadTray();
+    public static readonly ImageSource Window=LoadWindow();
+    static byte[] Read(){using(var source=System.Reflection.Assembly.GetExecutingAssembly().GetManifestResourceStream("CodexMeter.AppIcon.ico")){if(source==null)throw new InvalidOperationException("Missing application icon resource.");using(var output=new MemoryStream()){source.CopyTo(output);return output.ToArray();}}}
+    static System.Drawing.Icon LoadTray(){using(var source=new MemoryStream(bytes))using(var icon=new System.Drawing.Icon(source,32,32))return (System.Drawing.Icon)icon.Clone();}
+    static ImageSource LoadWindow(){using(var source=new MemoryStream(bytes)){var image=BitmapFrame.Create(source,BitmapCreateOptions.PreservePixelFormat,BitmapCacheOption.OnLoad);image.Freeze();return image;}}
+}
 sealed class QuotaColors {
     public readonly Color Start,Body,Tip;public readonly string Name;
     QuotaColors(string name,string start,string body,string tip){Name=name;Start=(Color)ColorConverter.ConvertFromString(start);Body=(Color)ColorConverter.ConvertFromString(body);Tip=(Color)ColorConverter.ConvertFromString(tip);}
@@ -252,6 +260,7 @@ class FloatWindow : Window {
     readonly bool previewMode;
     public FloatWindow(bool preview=false){
         previewMode=preview;
+        Icon=SoftwareIcon.Window;
         Title="Codex 用量胶囊";Width=298;Height=85.5;WindowStyle=WindowStyle.None;ResizeMode=ResizeMode.NoResize;AllowsTransparency=true;Background=Brushes.Transparent;Topmost=true;ShowInTaskbar=false;FontFamily=new FontFamily("Microsoft YaHei UI");
         frame=(Border)XamlReader.Parse(@"<Border xmlns='http://schemas.microsoft.com/winfx/2006/xaml/presentation' xmlns:x='http://schemas.microsoft.com/winfx/2006/xaml' Background='Transparent' Opacity='0.92' BorderThickness='5' CornerRadius='21' Margin='16,9,16,15'>
           <Border.Effect><DropShadowEffect Color='#07111D' BlurRadius='16' ShadowDepth='5' Direction='270' Opacity='0.62'/></Border.Effect>
@@ -271,7 +280,7 @@ class FloatWindow : Window {
         autoStop=new DispatcherTimer{Interval=TimeSpan.FromSeconds(3)};autoStop.Tick+=(s,e)=>Ack();
         Closing+=(s,e)=>{closing=true;Save();autoStop.Stop();if(clock!=null)clock.Stop();if(scanTimer!=null)scanTimer.Stop();cancel.Cancel();refresh.Set();if(tray!=null)tray.Dispose();lock(rpcGate){if(rpc!=null)rpc.Dispose();rpc=null;}};
         if(preview)return;
-        tray=new Forms.NotifyIcon{Icon=System.Drawing.SystemIcons.Information,Text="Codex 用量胶囊",Visible=true};tray.DoubleClick+=(s,e)=>Dispatcher.BeginInvoke(new Action(()=>{Show();Activate();}));
+        tray=new Forms.NotifyIcon{Icon=SoftwareIcon.Tray,Text="Codex 用量胶囊",Visible=true};tray.DoubleClick+=(s,e)=>Dispatcher.BeginInvoke(new Action(()=>{Show();Activate();}));
         var trayMenu=new Forms.ContextMenuStrip();trayMenu.Items.Add("显示用量胶囊",null,(s,e)=>Dispatcher.BeginInvoke(new Action(()=>{Show();Activate();})));trayMenu.Items.Add("退出",null,(s,e)=>Dispatcher.BeginInvoke(new Action(Close)));tray.ContextMenuStrip=trayMenu;
         try{string cache=System.IO.Path.Combine(store,"quota-cache.json");if(File.Exists(cache)){object c=Data.Json().DeserializeObject(File.ReadAllText(cache));DateTime.TryParse(Data.Str(Data.Get(c,"updatedAt")),out updated);latestResult=Data.Get(c,"result");RenderQuota(latestResult,true);}}catch{}
         monitor=SkinController.SharedMonitor;Task.Run(()=>QuotaLoop());
