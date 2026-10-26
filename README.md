@@ -16,6 +16,7 @@ A small Windows desktop widget for Codex quota, reset countdowns, and local task
 - 程序文件、窗口和系统托盘统一使用软件图标；发布包内嵌图标，无需额外文件。
 - 圆环中心显示百分比及重置倒计时，精确到天、小时；不足一小时会明确提示。
 - 本机任务完成时，整个框体（含填充区、暗色区和边框）泛红发光，3 秒后淡出。切换皮肤不会重新开始提醒计时。
+- 同屏前台应用进入全屏时自动避让，退出全屏后静默恢复；显示、提醒和切换皮肤均不抢键盘焦点。其他屏幕的额度窗保持显示，手动收起的窗口不会被提醒唤回。
 - 使用已有 Codex 登录，无需填写 API Key。演示图使用虚构数值。
 
 ## 使用
@@ -37,7 +38,9 @@ powershell -NoProfile -ExecutionPolicy Bypass -File .\scripts\build.ps1
 powershell -NoProfile -ExecutionPolicy Bypass -File .\scripts\test.ps1
 ```
 
-输出位于 `bin/CodexUsageWidget.exe`。测试覆盖分色阈值、额度窗口解析、历史及重复事件过滤、日志半行写入等 14 项检查，无需登录或网络。
+输出位于 `bin/CodexUsageWidget.exe`。测试覆盖分色阈值、全屏边界与桌面排除、额度窗口解析、历史及重复事件过滤、日志半行写入等 15 项检查，无需登录或网络。
+
+在交互式 Windows 桌面运行 `scripts/test-window-behavior.ps1`，会短暂打开并自动关闭独立的全屏模拟窗口，验证三种皮肤的焦点保持、同屏避让、跨屏显示、最小化恢复、手动收起和三秒提醒。该测试不需要 Codex 登录，不会启动游戏；应在不操作鼠标键盘时运行。
 
 生成离线演示图：
 
@@ -74,6 +77,7 @@ Start-Process -FilePath $exe -ArgumentList "--demo-preview `"$preview`"" -Wait
 | `src/CodexMeter.cs` | 额度接口、本地完成事件、能量胶囊及红光描边 |
 | `src/RingMeter.cs` | 白色/极光圆环、重置倒计时 |
 | `src/SkinController.cs` | 单窗口皮肤切换、位置与提醒状态 |
+| `src/WindowPresence.cs` | 被动显示、同屏全屏避让与可见性状态 |
 | `scripts/` | 构建与离线检查 |
 
 ## License

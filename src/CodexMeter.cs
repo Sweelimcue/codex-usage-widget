@@ -261,7 +261,7 @@ class FloatWindow : Window {
     public FloatWindow(bool preview=false){
         previewMode=preview;
         Icon=SoftwareIcon.Window;
-        Title="Codex 用量胶囊";Width=298;Height=85.5;WindowStyle=WindowStyle.None;ResizeMode=ResizeMode.NoResize;AllowsTransparency=true;Background=Brushes.Transparent;Topmost=true;ShowInTaskbar=false;FontFamily=new FontFamily("Microsoft YaHei UI");
+        Title="Codex 用量胶囊";Width=298;Height=85.5;WindowStyle=WindowStyle.None;ResizeMode=ResizeMode.NoResize;AllowsTransparency=true;Background=Brushes.Transparent;Topmost=false;ShowInTaskbar=false;FontFamily=new FontFamily("Microsoft YaHei UI");WindowPresence.Attach(this,preview);
         frame=(Border)XamlReader.Parse(@"<Border xmlns='http://schemas.microsoft.com/winfx/2006/xaml/presentation' xmlns:x='http://schemas.microsoft.com/winfx/2006/xaml' Background='Transparent' Opacity='0.92' BorderThickness='5' CornerRadius='21' Margin='16,9,16,15'>
           <Border.Effect><DropShadowEffect Color='#07111D' BlurRadius='16' ShadowDepth='5' Direction='270' Opacity='0.62'/></Border.Effect>
           <Grid Background='Transparent'>
@@ -274,19 +274,20 @@ class FloatWindow : Window {
         frame.MouseLeftButtonDown+=(s,e)=>{try{DragMove();Save();}catch{}};
         var menu=new ContextMenu();ContextMenu=menu;
         Add(menu,"立即刷新额度",()=>refresh.Set());Add(menu,"测试整框红光（3秒）",()=>{if(SkinController.Running)SkinController.NotifyActive();else Notify("红光演示",1);});SkinController.AddMenu(menu,"capsule");
-        var pin=new MenuItem{Header="始终置顶",IsCheckable=true,IsChecked=true};pin.Click+=(s,e)=>Topmost=pin.IsChecked;menu.Items.Add(pin);
-        Add(menu,"收起到托盘",()=>Hide());menu.Items.Add(new Separator());Add(menu,"退出",()=>Close());
+        var pin=new MenuItem{Header="始终置顶（全屏时避让）",IsCheckable=true,IsChecked=true};pin.Click+=(s,e)=>WindowPresence.SetPinned(this,pin.IsChecked);menu.Items.Add(pin);
+        menu.Opened+=(s,e)=>pin.IsChecked=WindowPresence.IsPinned(this);
+        Add(menu,"收起到托盘",()=>WindowPresence.Hide(this));menu.Items.Add(new Separator());Add(menu,"退出",()=>Close());
         Directory.CreateDirectory(store);Restore();RenderQuota(null,false);
         autoStop=new DispatcherTimer{Interval=TimeSpan.FromSeconds(3)};autoStop.Tick+=(s,e)=>Ack();
         Closing+=(s,e)=>{closing=true;Save();autoStop.Stop();if(clock!=null)clock.Stop();if(scanTimer!=null)scanTimer.Stop();cancel.Cancel();refresh.Set();if(tray!=null)tray.Dispose();lock(rpcGate){if(rpc!=null)rpc.Dispose();rpc=null;}};
         if(preview)return;
-        tray=new Forms.NotifyIcon{Icon=SoftwareIcon.Tray,Text="Codex 用量胶囊",Visible=true};tray.DoubleClick+=(s,e)=>Dispatcher.BeginInvoke(new Action(()=>{Show();Activate();}));
-        var trayMenu=new Forms.ContextMenuStrip();trayMenu.Items.Add("显示用量胶囊",null,(s,e)=>Dispatcher.BeginInvoke(new Action(()=>{Show();Activate();})));trayMenu.Items.Add("退出",null,(s,e)=>Dispatcher.BeginInvoke(new Action(Close)));tray.ContextMenuStrip=trayMenu;
+        tray=new Forms.NotifyIcon{Icon=SoftwareIcon.Tray,Text="Codex 用量胶囊",Visible=true};tray.DoubleClick+=(s,e)=>Dispatcher.BeginInvoke(new Action(()=>WindowPresence.Show(this)));
+        var trayMenu=new Forms.ContextMenuStrip();trayMenu.Items.Add("显示用量胶囊",null,(s,e)=>Dispatcher.BeginInvoke(new Action(()=>WindowPresence.Show(this))));trayMenu.Items.Add("退出",null,(s,e)=>Dispatcher.BeginInvoke(new Action(Close)));tray.ContextMenuStrip=trayMenu;
         try{string cache=System.IO.Path.Combine(store,"quota-cache.json");if(File.Exists(cache)){object c=Data.Json().DeserializeObject(File.ReadAllText(cache));DateTime.TryParse(Data.Str(Data.Get(c,"updatedAt")),out updated);latestResult=Data.Get(c,"result");RenderQuota(latestResult,true);}}catch{}
         monitor=SkinController.SharedMonitor;Task.Run(()=>QuotaLoop());
         scanTimer=new DispatcherTimer{Interval=TimeSpan.FromSeconds(2)};scanTimer.Tick+=(s,e)=>ScanTasks();scanTimer.Start();ScanTasks();
         clock=new DispatcherTimer{Interval=TimeSpan.FromMilliseconds(300)};clock.Tick+=(s,e)=>{
-            if(Program.ShowSignal!=null&&Program.ShowSignal.WaitOne(0)){Show();Activate();}
+            if(Program.ShowSignal!=null&&Program.ShowSignal.WaitOne(0))WindowPresence.Show(this);
 
             if(updated!=DateTime.MinValue&&DateTime.Now-updated>TimeSpan.FromMinutes(3)&&!quotaPanel.Tag.Equals(true))RenderQuota(latestResult,true);
         };clock.Start();
@@ -296,7 +297,7 @@ class FloatWindow : Window {
     void Save(){if(previewMode)return;try{Data.Atomic(System.IO.Path.Combine(store,"settings.json"),Data.Json().Serialize(new{left=Left,top=Top}));}catch{}}
     void SetEnergy(double intensity){foreach(Grid g in quotaPanel.Children.OfType<Grid>())foreach(EnergySurface e in g.Children.OfType<EnergySurface>()){e.Intensity=intensity;e.InvalidateVisual();}}
     public void Notify(string title,int count){unread+=count;ResumeAlert(3);}
-    public void ResumeAlert(double seconds){lamp.Fill=Brush("#FF5D55");autoStop.Stop();autoStop.Interval=TimeSpan.FromSeconds(seconds);autoStop.Start();if(!IsVisible)Show();sweep.Start(seconds);}
+    public void ResumeAlert(double seconds){lamp.Fill=Brush("#FF5D55");autoStop.Stop();autoStop.Interval=TimeSpan.FromSeconds(seconds);autoStop.Start();sweep.Start(seconds);}
     void Ack(){autoStop.Stop();unread=0;sweep.Stop();lamp.Fill=Brush("#485466");lamp.Effect=null;frame.BorderBrush=WhiteRim(false);SetEnergy(0.8);}
     void ScanTasks(){if(Interlocked.Exchange(ref scanBusy,1)==1)return;Task.Run(()=>{try{List<Completion> events;lock(monitor)events=monitor.Scan();Dispatcher.BeginInvoke(new Action(()=>{if(events.Count>0){if(SkinController.Running)SkinController.NotifyActive();else if(!closing)Notify(events.Last().Title,events.Count);if(!closing)refresh.Set();}}));}catch{}finally{Interlocked.Exchange(ref scanBusy,0);}});}
     void QuotaLoop(){while(!cancel.IsCancellationRequested){try{
@@ -355,6 +356,8 @@ static class Program {
     }
     static void Check(bool test,string name,List<string> passed){if(!test)throw new Exception("FAILED: "+name);passed.Add(name);}
     static void SelfTest(string output){var passed=new List<string>();
+        var monitorBounds=new Rect(0,0,1920,1080);var leftMonitor=new Rect(-1920,-100,1920,1080);
+        Check(WindowPresence.CoversMonitor(monitorBounds,monitorBounds,"GameWindow",false)&&WindowPresence.CoversMonitor(leftMonitor,leftMonitor,"GameWindow",false)&&!WindowPresence.CoversMonitor(new Rect(0,32,1920,1048),monitorBounds,"Window",false)&&!WindowPresence.CoversMonitor(new Rect(0,0,1920,1040),monitorBounds,"Window",false)&&!WindowPresence.CoversMonitor(leftMonitor,monitorBounds,"GameWindow",false)&&!WindowPresence.CoversMonitor(monitorBounds,monitorBounds,"WorkerW",false)&&!WindowPresence.CoversMonitor(monitorBounds,monitorBounds,"Progman",false)&&!WindowPresence.CoversMonitor(monitorBounds,monitorBounds,"GameWindow",true)&&!WindowPresence.CoversMonitor(Rect.Empty,monitorBounds,"GameWindow",false),"fullscreen geometry and desktop exclusions",passed);
         Check(Data.Stage(100)=="#FF0F9D2A"&&Data.Stage(80.01)=="#FF0F9D2A"&&Data.Stage(80)=="#FF004DD2"&&Data.Stage(60.01)=="#FF004DD2"&&Data.Stage(60)=="#FF5727AE"&&Data.Stage(40.01)=="#FF5727AE"&&Data.Stage(40)=="#FFAF900D"&&Data.Stage(20.01)=="#FFAF900D"&&Data.Stage(20)=="#FFDB7900"&&Data.Stage(10.01)=="#FFDB7900"&&Data.Stage(10)=="#FFC51F3E"&&Data.Stage(0)=="#FFC51F3E","shared six-stage threshold boundaries",passed);
         var q=Data.Quotas(Data.Json().DeserializeObject("{\"rateLimitsByLimitId\":{\"codex\":{\"primary\":{\"usedPercent\":4,\"windowDurationMins\":10080},\"secondary\":null}}}"));Check(q.Count==1&&q[0].Remaining==96&&q[0].Label=="周额度","weekly primary without secondary",passed);
         q=Data.Quotas(Data.Json().DeserializeObject("{\"rateLimits\":{\"primary\":{\"usedPercent\":120,\"windowDurationMins\":300},\"secondary\":{\"usedPercent\":10,\"windowDurationMins\":10080},\"individualLimit\":{\"remainingPercent\":68}}}"));Check(q.Count==3&&q[0].Remaining==0&&q[0].Label=="5 小时额度"&&q[2].Remaining==68,"legacy and monthly quotas",passed);

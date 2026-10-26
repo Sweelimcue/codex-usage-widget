@@ -7,7 +7,7 @@ try {
     $process = Start-Process -FilePath $exe -ArgumentList "--self-test `"$report`"" -Wait -PassThru -WindowStyle Hidden
     if ($process.ExitCode -ne 0) { throw 'Self-test process failed.' }
     $result = Get-Content -LiteralPath $report -Raw | ConvertFrom-Json
-    if ($result.passed -ne 14) { throw 'Unexpected self-test results.' }
+    if ($result.passed -ne 15) { throw 'Unexpected self-test results.' }
     Write-Output ($result | ConvertTo-Json -Depth 5)
 } finally {
     if (Test-Path -LiteralPath $report) { Remove-Item -LiteralPath $report }

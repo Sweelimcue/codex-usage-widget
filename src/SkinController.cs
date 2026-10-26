@@ -19,7 +19,8 @@ static class SkinController {
     public static void Switch(string skin){if(!Running){Start(Application.Current,skin);return;}if(skin==activeSkin&&Current!=null)return;
         Window old=Current;Window next=skin=="ring"?(Window)new RingWindow():skin=="aurora"?(Window)new RingWindow(false,true):new FloatWindow();
         if(old!=null){double right=old.Left+old.Width;next.Left=Math.Max(SystemParameters.VirtualScreenLeft,Math.Min(right-next.Width,SystemParameters.VirtualScreenLeft+SystemParameters.VirtualScreenWidth-next.Width));next.Top=Math.Max(SystemParameters.VirtualScreenTop,Math.Min(old.Top,SystemParameters.VirtualScreenTop+SystemParameters.VirtualScreenHeight-next.Height));}
-        switching=true;try{if(old!=null)old.Close();Current=next;activeSkin=skin;Application.Current.MainWindow=next;next.Closed+=(s,e)=>{if(!switching&&Current==next){Running=false;Application.Current.Shutdown();}};next.Show();next.Activate();double remaining=(alertUntil-DateTime.UtcNow).TotalSeconds;if(remaining>0)Resume(remaining);Save();}finally{switching=false;}
+        if(old!=null)WindowPresence.SetPinned(next,WindowPresence.IsPinned(old));
+        switching=true;try{if(old!=null)old.Close();Current=next;activeSkin=skin;Application.Current.MainWindow=next;next.Closed+=(s,e)=>{if(!switching&&Current==next){Running=false;Application.Current.Shutdown();}};WindowPresence.Show(next);double remaining=(alertUntil-DateTime.UtcNow).TotalSeconds;if(remaining>0)Resume(remaining);Save();}finally{switching=false;}
     }
     static void Resume(double seconds){var c=Current as FloatWindow;if(c!=null)c.ResumeAlert(seconds);var r=Current as RingWindow;if(r!=null)r.Notify(seconds);}
     public static void NotifyActive(){alertUntil=DateTime.UtcNow.AddSeconds(3);Resume(3);}

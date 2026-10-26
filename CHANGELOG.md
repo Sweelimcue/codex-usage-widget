@@ -1,5 +1,12 @@
 # Changelog
 
+## v1.0.10 — 2026-10-26
+
+- Avoid foreground activation on startup, skin switches, tray restore, mouse interaction, and task completion.
+- Yield to foreground full-screen apps on the widget's monitor, then restore quietly after fullscreen exits or minimizes.
+- Preserve manual hide and pin choices; task-completion glow never reopens a hidden window.
+- Add offline fullscreen boundary checks and an independent-window regression harness for all three skins.
+
 ## v1.0.9 — 2026-10-21
 
 - Embed the software icon in the executable, window metadata, and system tray for all skins.
